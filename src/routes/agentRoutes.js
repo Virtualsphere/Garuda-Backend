@@ -12,11 +12,13 @@ const {
   getAllLandFullDetails,
   updateLandDetails,
   updateUserDetails,
-  getUserDetails,
-  getAddress
+  getUserProfile,
+  getAddress,
+  getSessionsByUser,
+  getAllLandFullDraftDetails
 } = require("../controller/agentController");
 
-router.use(verifyToken, requireRole(["admin", "agent"]));
+router.use(verifyToken, requireRole(["admin", "field executive"]));
 
 // -----------------------------
 // LAND UPLOAD MIDDLEWARE
@@ -30,6 +32,7 @@ const landUpload = upload.fields([
 
 router.post("/land", landUpload, createFullLandEntry);
 router.get("/land", getAllLandFullDetails);
+router.get("/land/draft", getAllLandFullDraftDetails);
 router.put("/land/:land_id", landUpload, updateLandDetails);
 
 // -----------------------------
@@ -45,13 +48,17 @@ const endingSessionUpload= upload.fields([
 ]);
 
 const agentDetailsUpdate= upload.fields([
-  { name: "image", maxCount: 1 }
+  { name: "image", maxCount: 1 },
+  { name: "photo", maxCount: 1},
+  { name: "aadhar_front_image", maxCount: 1 },
+  { name: "aadhar_back_image", maxCount: 1 }
 ]);
 
 router.post("/session", startginSessionUpload, createSession);
 router.put("/update/session/:id", endingSessionUpload, updateSession);
+router.get('/session', getSessionsByUser);
 
-router.get("/personal/details", getUserDetails);
+router.get("/personal/details", getUserProfile);
 router.put("/personal/details", agentDetailsUpdate, updateUserDetails);
 router.post("/address", getAddress);
 

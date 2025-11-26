@@ -19,7 +19,7 @@ app.use("/public", express.static(path.join(__dirname, "./src/public")));
 // Routes
 app.use('/api', userRoutes);
 app.use('/auth', authRoutes);
-app.use('/agent', agentRoutes);
+app.use('/field-executive', agentRoutes);
 app.get("/", (req, res) => {
   res.send("welcome to Gadura server");
 });

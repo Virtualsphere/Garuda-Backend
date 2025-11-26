@@ -30,17 +30,15 @@ const storage = multer.diskStorage({
 
 // File filter (optional but recommended)
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "image/jpeg", "image/png", "image/jpg",
-    "video/mp4", "video/mkv", "video/webm",
-    "application/pdf", "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-  ];
-
-  if (!allowedTypes.includes(file.mimetype)) {
-    return cb(new Error("Unsupported file type"), false);
+  if (
+    file.mimetype.startsWith("image/") ||
+    file.mimetype.startsWith("video/") ||
+    file.mimetype.startsWith("application/")
+  ) {
+    cb(null, true);
+  } else {
+    cb(null, true); // or false if you want to silently block others
   }
-  cb(null, true);
 };
 
 // Set limits (optional)
