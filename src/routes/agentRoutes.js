@@ -18,6 +18,8 @@ const {
   getAllLandFullDraftDetails
 } = require("../controller/agentController");
 
+const { getLandWallet, getTravelWallet, getLandMonthWallet }= require("../controller/baseController");
+
 router.use(verifyToken, requireRole(["admin", "field executive"]));
 
 // -----------------------------
@@ -61,5 +63,9 @@ router.get('/session', getSessionsByUser);
 router.get("/personal/details", getUserProfile);
 router.put("/personal/details", agentDetailsUpdate, updateUserDetails);
 router.post("/address", getAddress);
+
+router.get("/travel-wallet", getTravelWallet);
+router.get("/land-wallet", getLandWallet);
+router.get("/land-month-wallet", getLandMonthWallet);
 
 module.exports = router;

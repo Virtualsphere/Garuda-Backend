@@ -251,15 +251,9 @@ const createFullLandEntry = async (req, res) => {
       SELECT land_id FROM land_location ORDER BY created_at DESC LIMIT 1
     `);
 
-    let newLandId = "LAND-0";
+    const idRes= await client.query(`SELECT nextval('land_id_seq') AS id`);
 
-    if (lastIdRes.rows.length) {
-        const last = lastIdRes.rows[0].land_id;   // "LAND-12"
-        const num = parseInt(last.split("-")[1]); // 12
-        newLandId = `LAND-${num + 1}`;
-    }
-
-    const land_id= newLandId;
+    const land_id= `LAND-${idRes.rows[0].id}`
 
     // ------------------------------
     // 1️⃣ Insert land_location
@@ -347,6 +341,34 @@ const createFullLandEntry = async (req, res) => {
        (land_id, land_photo, land_video)
        VALUES ($1,$2::text[],$3::text[]);`,
       [land_id, landPhoto, landVideo]
+    );
+
+    await client.query(
+      `INSERT INTO land_wallet 
+      (land_id, unique_id, varification, date, work_amount, status)
+      VALUES ($1, $2, $3, $4, $5, $6);`,
+      [
+        land_id,
+        unique_id,
+        "pending",
+        new Date(),
+        0,
+        "pending"
+      ]
+    );
+
+    await client.query(
+      `INSERT INTO land_month_wallet 
+      (land_id, unique_id, varification, date, month_end_amount, status)
+      VALUES ($1, $2, $3, $4, $5, $6);`,
+      [
+        land_id,
+        unique_id,
+        "pending",
+        new Date(),
+        0,
+        "pending"
+      ]
     );
 
     await client.query("COMMIT");
@@ -809,11 +831,33 @@ const updateSession = async (req, res) => {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    res.status(200).json({
-      message: "✅ Session updated successfully",
-      data: result.rows[0],
-    });
+    const updated = result.rows[0];
 
+    const total_km =
+      updated.end_km && updated.starting_km
+        ? Number(updated.end_km) - Number(updated.starting_km)
+        : null;
+
+    // 3️⃣ Insert directly into travel_wallet
+    await pool.query(
+      `INSERT INTO travel_wallet 
+        (session_id, unique_id, date, total_km, amount, status)
+       VALUES ($1, $2, $3, $4, $5, $6);`,
+      [
+        updated.id,
+        updated.unique_id,
+        updated.created_at,
+        total_km,
+        0,
+        "pending",
+      ]
+    );
+
+    // 4️⃣ Response
+    res.status(200).json({
+      message: "✅ Session updated & travel wallet entry created",
+      data: updated,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "❌ Failed to update session" });

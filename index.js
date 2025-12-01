@@ -5,6 +5,7 @@ const path = require("path");
 
 const { createUserTable } = require('./src/controller/registerController');
 const { createTables } = require('./src/controller/agentController');
+const { createWalletTable }= require('./src/controller/baseController');
 
 const userRoutes = require('./src/routes/registerRoutes');
 const authRoutes = require('./src/routes/authRoutes');
@@ -29,5 +30,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {
   await createUserTable();
   await createTables();
+  await createWalletTable();
   console.log(`🚀 Server running on port ${PORT}`);
 });
