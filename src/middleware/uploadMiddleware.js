@@ -10,7 +10,7 @@ const ensureDirectoryExists = (dir) => {
 // Define storage for different file types
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let folder = "../public/files"; // default fallback
+    let folder = "../public/files";
 
     if (file.mimetype.startsWith("image/")) folder = "../public/images";
     else if (file.mimetype.startsWith("video/")) folder = "../public/videos";
@@ -37,7 +37,7 @@ const fileFilter = (req, file, cb) => {
   ) {
     cb(null, true);
   } else {
-    cb(null, true); // or false if you want to silently block others
+    cb(null, true);
   }
 };
 

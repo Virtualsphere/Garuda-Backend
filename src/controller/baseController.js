@@ -61,14 +61,18 @@ const getTravelWallet = async (req, res) => {
   }
 };
 
-
-// ===================== GET land_wallet BY unique_id =====================
+// ===================== GET land_wallet BY unique_id =======
+// ==============
 const getLandWallet = async (req, res) => {
   try {
-    const unique_id= req.user.unique_id;
+    const unique_id = req.user.unique_id;
 
     const result = await pool.query(
-      `SELECT * FROM land_wallet WHERE unique_id = $1 ORDER BY id DESC`,
+      `SELECT lw.*, fd.name AS farmer_name
+       FROM land_wallet lw
+       LEFT JOIN farmer_details fd ON fd.land_id = lw.land_id
+       WHERE lw.unique_id = $1
+       ORDER BY lw.id DESC`,
       [unique_id]
     );
 
@@ -86,10 +90,14 @@ const getLandWallet = async (req, res) => {
 // ===================== GET land_month_wallet BY unique_id =====================
 const getLandMonthWallet = async (req, res) => {
   try {
-    const unique_id= req.user.unique_id;
+    const unique_id = req.user.unique_id;
 
     const result = await pool.query(
-      `SELECT * FROM land_month_wallet WHERE unique_id = $1 ORDER BY id DESC`,
+      `SELECT lmw.*, fd.name AS farmer_name
+       FROM land_month_wallet lmw
+       LEFT JOIN farmer_details fd ON fd.land_id = lmw.land_id
+       WHERE lmw.unique_id = $1
+       ORDER BY lmw.id DESC`,
       [unique_id]
     );
 
@@ -104,94 +112,9 @@ const getLandMonthWallet = async (req, res) => {
   }
 };
 
-
-const dynamicUpdate = async (table, id, body) => {
-  const columns = Object.keys(body);
-  const values = Object.values(body);
-
-  if (columns.length === 0) return null;
-
-  const setClause = columns
-    .map((col, idx) => `${col} = $${idx + 2}`)
-    .join(", ");
-
-  const query = `
-    UPDATE ${table}
-    SET ${setClause}
-    WHERE id = $1
-    RETURNING *;
-  `;
-
-  const result = await pool.query(query, [id, ...values]);
-  return result.rows[0];
-};
-
-
-const updateTravelWallet = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updated = await dynamicUpdate("travel_wallet", id, req.body);
-
-    if (!updated)
-      return res.status(404).json({ error: "Travel wallet record not found" });
-
-    res.status(200).json({
-      message: "Travel wallet updated successfully",
-      data: updated,
-    });
-
-  } catch (error) {
-    console.error("Update Travel Wallet Error:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-};
-
-
-const updateLandWallet = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updated = await dynamicUpdate("land_wallet", id, req.body);
-
-    if (!updated)
-      return res.status(404).json({ error: "Land wallet record not found" });
-
-    res.status(200).json({
-      message: "Land wallet updated successfully",
-      data: updated,
-    });
-
-  } catch (error) {
-    console.error("Update Land Wallet Error:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-};
-
-
-const updateLandMonthWallet = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updated = await dynamicUpdate("land_month_wallet", id, req.body);
-
-    if (!updated)
-      return res.status(404).json({ error: "Land month wallet record not found" });
-
-    res.status(200).json({
-      message: "Land month wallet updated successfully",
-      data: updated,
-    });
-
-  } catch (error) {
-    console.error("Update Land Month Wallet Error:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-};
-
 module.exports= {
     getTravelWallet,
     getLandWallet,
     getLandMonthWallet,
-    updateTravelWallet,
-    updateLandWallet,
-    updateLandMonthWallet,
     createWalletTable
 }
