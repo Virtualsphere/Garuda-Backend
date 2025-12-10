@@ -28,7 +28,7 @@ app.use('/api', userRoutes);
 app.use('/auth', authRoutes);
 app.use('/field-executive', agentRoutes);
 app.use('/admin', adminRoutes);
-app.use('/', baseRoutes);
+app.use('/location', baseRoutes);
 app.get("/", (req, res) => {
   res.send("welcome to Gadura server");
 });
