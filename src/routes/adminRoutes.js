@@ -23,7 +23,8 @@ const {
   deleteLandCode,
   updateLandCode,
   getLandCodesByLocation,
-  generateLandCodes
+  generateLandCodes,
+  getLandData
 } = require("../controller/adminController");
 
 const { createBuyer, getBuyers, addWishlist, getWishList } = require("../controller/BuyerController");
@@ -55,7 +56,7 @@ router.put("/land/:land_id", landUpload, updateLandDetails);
 
 router.get("/travel/wallet", getTravelWallet);
 router.get("/land/wallet", getLandWallet);
-router.get("/land/month/wallet", getLandMonthWallet);
+router.get("/land/wallet/month", getLandMonthWallet);
 
 router.put("/travel/wallet/:id", updateTravelWallet);
 router.put("/land/wallet/:id", updateLandWallet);
@@ -114,5 +115,7 @@ router.get('/land-codes/:id', getLandCodeById);
 router.put('/land-codes/:id', updateLandCode);
 router.delete('/land-codes/:id', deleteLandCode);
 router.post('/land-codes/bulk-update', bulkUpdateLandCodes);
+
+router.get('/land/data', getLandData);
 
 module.exports = router;
