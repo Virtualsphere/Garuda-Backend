@@ -14,6 +14,7 @@ const userRoutes = require('./src/routes/registerRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const agentRoutes = require('./src/routes/agentRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
+const baseRoutes= require('./src/routes/baseRoutes');
 const { createAgent } = require('./src/model/agentModel');
 
 dotenv.config();
@@ -27,6 +28,7 @@ app.use('/api', userRoutes);
 app.use('/auth', authRoutes);
 app.use('/field-executive', agentRoutes);
 app.use('/admin', adminRoutes);
+app.use('/', baseRoutes);
 app.get("/", (req, res) => {
   res.send("welcome to Gadura server");
 });
