@@ -3,18 +3,19 @@ const dotenv = require('dotenv');
 const cors = require("cors");
 const path = require("path");
 
-const { createUserTable } = require('./src/controller/registerController');
-const { createTables } = require('./src/controller/agentController');
-const { createWalletTable }= require('./src/controller/baseController');
-const { buyerTable }= require('./src/controller/BuyerController');
+const { createUserTable } = require('./src/model/userModel');
+const { createTables } = require('./src/model/landModel');
+const { createWalletTable }= require('./src/model/walletModel');
+const { buyerTable }= require('./src/model/buyerModel');
 const { createLocation }= require('./src/model/locationModel');
-const { createLandCode }= require('./src/model/landModel');
+const { createLandCode }= require('./src/model/landCodeModel');
 
 const userRoutes = require('./src/routes/registerRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const agentRoutes = require('./src/routes/agentRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const baseRoutes= require('./src/routes/baseRoutes');
+const regionalRoutes= require('./src/routes/regionalRoutes')
 const { createAgent } = require('./src/model/agentModel');
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.use('/api', userRoutes);
 app.use('/auth', authRoutes);
 app.use('/field-executive', agentRoutes);
 app.use('/admin', adminRoutes);
+app.use('/regional', regionalRoutes)
 app.use('/location', baseRoutes);
 app.get("/", (req, res) => {
   res.send("welcome to Gadura server");

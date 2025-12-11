@@ -1,85 +1,44 @@
 const pool = require('../db/db');
 const bcrypt = require('bcrypt');
 
-// ✅ Create table if not exists (with role column)
-const createUserTable = async () => {
-    await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
-      name VARCHAR(100) NOT NULL,
-      email VARCHAR(100),
-      phone VARCHAR(20),
-      password VARCHAR(200),
-      role VARCHAR(50) DEFAULT 'agent',
-      blood_group VARCHAR(50),
-      image VARCHAR(100),
-      photo VARCHAR(100)
-    );
-  `);
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS address (
-      id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
-      state VARCHAR(100),
-      district VARCHAR(100),
-      mandal VARCHAR(100),
-      village VARCHAR(100),
-      pincode VARCHAR(100)
-    );
-  `);
+const userFields = ["name", "email", "phone", "blood_group"];
+const addressFields = ["state", "district", "mandal", "village", "pincode"];
+const aadharFields = ["aadhar_number"];
+const salaryFields = ["package"];
+const bankFields = [
+  "bank_name",
+  "account_number",
+  "ifsc_code",
+  "gpay_number",
+  "phonepe_number",
+  "upi_id",
+];
+const workFields = [
+  "work_state",
+  "work_district",
+  "work_mandal",
+  "work_village",
+];
+const vehicleFields = ["vehicle_type", "license_plate"];
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS aadhar_card (
-      id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
-      aadhar_number VARCHAR(255),
-      aadhar_front_image VARCHAR(255),
-      aadhar_back_image VARCHAR(255)
-    );
-  `);
+const upsert = async (table, uniqueId, data) => {
+  const cols = Object.keys(data);
+  const vals = Object.values(data);
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS salary_package (
-      id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
-      package VARCHAR(255)
-    );
-  `);
+  if (cols.length === 0) return;
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS bank_account (
-      id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
-      bank_name VARCHAR(255),
-      account_number VARCHAR(255),
-      ifsc_code VARCHAR(255),
-      gpay_number VARCHAR(255),
-      phonepe_number VARCHAR(255),
-      upi_id VARCHAR(255)
-    );
-  `);
+  const setClause = cols.map((col) => `${col} = EXCLUDED.${col}`).join(", ");
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS work_location (
-      id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
-      work_state VARCHAR(255),
-      work_district VARCHAR(255),
-      work_mandal VARCHAR(255),
-      work_village VARCHAR(255)
-    );
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS vehicle_information (
-      id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
-      vehicle_type VARCHAR(255),
-      license_plate VARCHAR(255)
-    );
-  `);
+  await pool.query(
+    `
+      INSERT INTO ${table} (unique_id, ${cols.join(", ")})
+      VALUES ($1, ${vals.map((_, i) => `$${i + 2}`).join(", ")})
+      ON CONFLICT (unique_id)
+      DO UPDATE SET ${setClause};
+    `,
+    [uniqueId, ...vals]
+  );
 };
 
 // ✅ Generate unique ID (still keep this format for tracking)
@@ -107,8 +66,6 @@ const registerUser = async (req, res) => {
 
     const image = req.files?.image?.[0]?.filename || null;
     const photo = req.files?.photo?.[0]?.filename || null;
-
-    await createUserTable();
 
     const duplicate = await pool.query(
       `SELECT * FROM users WHERE email = $1 OR phone = $2`,
@@ -149,4 +106,127 @@ const registerUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, createUserTable };
+const updateUserDetails = async (req, res) => {
+  try {
+    const uniqueId = req.user.unique_id;
+
+    const body = req.body;
+    let dataUsers = {};
+    let dataAddress = {};
+    let dataAadhar = {};
+    let dataSalary = {};
+    let dataBank = {};
+    let dataWork = {};
+    let dataVehicle = {};
+
+    // Assign body fields
+    for (let key in body) {
+      if (userFields.includes(key)) dataUsers[key] = body[key];
+      if (addressFields.includes(key)) dataAddress[key] = body[key];
+      if (aadharFields.includes(key)) dataAadhar[key] = body[key];
+      if (salaryFields.includes(key)) dataSalary[key] = body[key];
+      if (bankFields.includes(key)) dataBank[key] = body[key];
+      if (workFields.includes(key)) dataWork[key] = body[key];
+      if (vehicleFields.includes(key)) dataVehicle[key] = body[key];
+    }
+
+    // Handle image uploads
+    if (req.files?.image) {
+      dataUsers.image = req.files.image[0].filename || null;
+    }
+
+    if (req.files?.photo) {
+      dataUsers.photo = req.files.photo[0].filename || null;
+    }
+
+    if (req.files?.aadhar_front_image) {
+      dataAadhar.aadhar_front_image =
+        req.files.aadhar_front_image[0].filename || null;
+    }
+
+    if (req.files?.aadhar_back_image) {
+      dataAadhar.aadhar_back_image =
+        req.files.aadhar_back_image[0].filename || null;
+    }
+
+    // UPSERT for each section
+    await upsert("users", uniqueId, dataUsers);
+    await upsert("address", uniqueId, dataAddress);
+    await upsert("aadhar_card", uniqueId, dataAadhar);
+    await upsert("salary_package", uniqueId, dataSalary);
+    await upsert("bank_account", uniqueId, dataBank);
+    await upsert("work_location", uniqueId, dataWork);
+    await upsert("vehicle_information", uniqueId, dataVehicle);
+
+    res.status(200).json({
+      message: "User updated successfully",
+    });
+  } catch (err) {
+    console.error("Update User Error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const getUserProfile = async (req, res) => {
+  try {
+    const uniqueId = req.user.unique_id;
+
+    const baseURL = `${req.protocol}://${req.get("host")}/public/images/`;
+
+    // Get user
+    const userRes = await pool.query(
+      `SELECT * FROM users WHERE unique_id = $1`,
+      [uniqueId]
+    );
+
+    if (!userRes.rows.length) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = userRes.rows[0];
+    user.image = user.image ? baseURL + user.image : null;
+    user.photo = user.photo ? baseURL + user.photo : null;
+
+    // Fetch other tables
+    const [address, aadhar, salary, bank, work, vehicle] = await Promise.all([
+      pool.query(`SELECT * FROM address WHERE unique_id = $1`, [uniqueId]),
+      pool.query(`SELECT * FROM aadhar_card WHERE unique_id = $1`, [uniqueId]),
+      pool.query(`SELECT * FROM salary_package WHERE unique_id = $1`, [
+        uniqueId,
+      ]),
+      pool.query(`SELECT * FROM bank_account WHERE unique_id = $1`, [uniqueId]),
+      pool.query(`SELECT * FROM work_location WHERE unique_id = $1`, [
+        uniqueId,
+      ]),
+      pool.query(`SELECT * FROM vehicle_information WHERE unique_id = $1`, [
+        uniqueId,
+      ]),
+    ]);
+
+    const aadharData = aadhar.rows[0] || null;
+    if (aadharData) {
+      aadharData.aadhar_front_image = aadharData.aadhar_front_image
+        ? baseURL + aadharData.aadhar_front_image
+        : null;
+      aadharData.aadhar_back_image = aadharData.aadhar_back_image
+        ? baseURL + aadharData.aadhar_back_image
+        : null;
+    }
+
+    res.status(200).json({
+      message: "User profile fetched successfully",
+      user,
+      address: address.rows[0] || null,
+      aadhar: aadharData,
+      salary_package: salary.rows[0] || null,
+      bank_account: bank.rows[0] || null,
+      work_location: work.rows[0] || null,
+      vehicle_information: vehicle.rows[0] || null,
+    });
+  } catch (err) {
+    console.error("Get User Profile Error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+module.exports = { registerUser, updateUserDetails, getUserProfile };
