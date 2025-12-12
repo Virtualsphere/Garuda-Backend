@@ -2,30 +2,19 @@ const express = require("express");
 const router = express.Router();
 const verifyToken = require("../middleware/authMiddleware");
 const requireRole = require("../middleware/requireRole");
-const locationController= require("../controller/locationController");
 
 const upload = require("../middleware/uploadMiddleware");
 
-const {
-  createFullLandEntry,
-  createSession,
-  updateSession,
-  getAllLandFullDetails,
-  updateLandDetails,
-  updateUserDetails,
-  getUserProfile,
-  getAddress,
-  getSessionsByUser,
-  getAllLandFullDraftDetails
-} = require("../controller/agentController");
+const registerController= require("../controller/registerController");
 
-const { getLandWallet, getTravelWallet, getLandMonthWallet }= require("../controller/baseController");
+const landController= require("../controller/landController");
 
-router.use(verifyToken, requireRole(["admin", "field executive"]));
+const baseController= require("../controller/baseController");
 
-// -----------------------------
-// LAND UPLOAD MIDDLEWARE
-// -----------------------------
+const sessionController= require("../controller/sessionController");
+
+router.use(verifyToken);
+
 const landUpload = upload.fields([
   { name: "passbook_photo", maxCount: 1 },
   { name: "land_border", maxCount: 1 },
@@ -33,14 +22,11 @@ const landUpload = upload.fields([
   { name: "land_video" }
 ]);
 
-router.post("/land", landUpload, createFullLandEntry);
-router.get("/land", getAllLandFullDetails);
-router.get("/land/draft", getAllLandFullDraftDetails);
-router.put("/land/:land_id", landUpload, updateLandDetails);
+router.post("/land", landUpload, landController.createFullLandEntry);
+router.get("/land", landController.getAllLandFullDetails);
+router.get("/land/draft", landController.getAllLandFullDraftDetails);
+router.put("/land/:land_id", landUpload, landController.updateLandDetails);
 
-// -----------------------------
-// SESSION UPLOAD MIDDLEWARE
-// -----------------------------
 const startginSessionUpload = upload.fields([
   { name: "starting_image", maxCount: 1 }
 ]);
@@ -57,16 +43,15 @@ const agentDetailsUpdate= upload.fields([
   { name: "aadhar_back_image", maxCount: 1 }
 ]);
 
-router.post("/session", startginSessionUpload, createSession);
-router.put("/update/session/:id", endingSessionUpload, updateSession);
-router.get('/session', getSessionsByUser);
+router.post("/session", startginSessionUpload, sessionController.createSession);
+router.put("/update/session/:id", endingSessionUpload, sessionController.updateSession);
+router.get('/session', sessionController.getAgentSessions);
 
-router.get("/personal/details", getUserProfile);
-router.put("/personal/details", agentDetailsUpdate, updateUserDetails);
-router.post("/address", getAddress);
+router.get("/personal/details", registerController.getUserProfile);
+router.put("/personal/details", agentDetailsUpdate, registerController.updateUserDetails);
 
-router.get("/travel-wallet", getTravelWallet);
-router.get("/land-wallet", getLandWallet);
-router.get("/land-month-wallet", getLandMonthWallet);
+router.get("/travel-wallet", baseController.getTravelWallet);
+router.get("/land-wallet", baseController.getLandWallet);
+router.get("/land-month-wallet", baseController.getLandMonthWallet);
 
 module.exports = router;

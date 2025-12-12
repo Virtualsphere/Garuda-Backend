@@ -8,7 +8,7 @@ const sessionController= require("../controller/sessionController");
 const registerController= require("../controller/registerController");
 const baseController= require("../controller/baseController");
 
-router.use(verifyToken, requireRole(["admin", "regional incharge"]));
+router.use(verifyToken);
 
 const landUpload = upload.fields([
   { name: "passbook_photo", maxCount: 1 },
@@ -37,11 +37,11 @@ router.post("/land",landUpload, landController.createFullLandEntry);
 router.get("/land/unverified", landController.getAllUniverfiedLandFullDetails);
 router.get("/land/rejected", landController.getAllRejectedLandFullDetails);
 router.get("/land/draft", landController.getAllLandFullDraftDetails);
-router.put("/land/:land_id", landUpload, landController.updateLandDetails);
+router.put("/land/:land_id", landUpload, landController.updateVerficationLandWithPhysicalVerificationDetails);
 
 router.post("/session", startginSessionUpload, sessionController.createSession);
 router.put("/update/session/:id", endingSessionUpload, sessionController.updateSession);
-router.get('/session', sessionController.getSessionsByUser);
+router.get('/session', sessionController.getRegionalSessions);
 
 router.get("/personal/details", registerController.getUserProfile);
 router.put("/personal/details", regionalDetailsUpdate, registerController.updateUserDetails);

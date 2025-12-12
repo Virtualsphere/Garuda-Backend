@@ -124,7 +124,7 @@ const updateSession = async (req, res) => {
   }
 };
 
-const getSessionsByUser = async (req, res) => {
+const getRegionalSessions = async (req, res) => {
   try {
     const unique_id = req.user.unique_id;
 
@@ -227,4 +227,150 @@ const getSessionsByUser = async (req, res) => {
   }
 };
 
-module.exports= { createSession, updateSession, getSessionsByUser }
+const getSessionsByUserId = async (req, res) => {
+  try {
+    const baseURL = `${req.protocol}://${req.get("host")}/public/`;
+    const session_id= req.params.session_id;
+
+    const sessionRes = await pool.query(
+      `SELECT * FROM session WHERE id = $1 ORDER BY id DESC`,
+      [session_id]
+    );
+
+    if (sessionRes.rows.length === 0) {
+      return res.status(404).json({
+        message: "No sessions found for this user",
+      });
+    }
+    const row= sessionRes.rows[0];
+    let finalOutput = {
+        session_id: row.id,
+        date: row.created_at,
+        starting_time: row.starting_time,
+        starting_km: row.starting_km,
+        starting_image: row.starting_image
+          ? baseURL + "images/" + row.starting_image
+          : null,
+
+        end_time: row.end_time,
+        end_km: row.end_km,
+        end_image: row.end_image ? baseURL + "images/" + row.end_image : null,
+
+        transport_charges: row.transport_charges,
+        ticket_image: (row.ticket_image || []).map(
+          (img) => baseURL + "images/" + img
+        ),
+    };
+
+    // -----------------------------
+    // 4️⃣ Send Response
+    // -----------------------------
+    res.status(200).json({
+      message: "✔ Sessions fetched successfully",
+      data: finalOutput,
+    });
+  } catch (error) {
+    console.error("Get Sessions Error:", error);
+    res.status(500).json({ error: "Server error while fetching sessions" });
+  }
+};
+
+const getAgentSessions = async (req, res) => {
+  try {
+    const unique_id = req.user.unique_id;
+
+    const baseURL = `${req.protocol}://${req.get("host")}/public/`;
+
+    // -----------------------------
+    // 1️⃣ Fetch land records + farmer name + status
+    // -----------------------------
+    const landRes = await pool.query(
+      `
+      SELECT 
+        ll.created_at,
+        ll.status,
+        fd.name AS farmer_name
+      FROM land_location ll
+      LEFT JOIN farmer_details fd ON fd.land_id = ll.land_id
+      WHERE ll.unique_id = $1
+      `,
+      [unique_id]
+    );
+
+    // Build map by date
+    const landMap = {};
+    landRes.rows.forEach((row) => {
+      if (row.created_at) {
+        const date = row.created_at.toISOString().split("T")[0];
+
+        landMap[date] = {
+          farmer_name: row.farmer_name || null,
+          status: row.status === "true", // convert to Boolean
+        };
+      }
+    });
+
+    // -----------------------------
+    // 2️⃣ Fetch sessions
+    // -----------------------------
+    const sessionRes = await pool.query(
+      `SELECT * FROM session WHERE unique_id = $1 ORDER BY id DESC`,
+      [unique_id]
+    );
+
+    if (sessionRes.rows.length === 0) {
+      return res.status(404).json({
+        message: "No sessions found for this user",
+      });
+    }
+
+    let finalOutput = {};
+
+    // -----------------------------
+    // 3️⃣ Build Final Response with status logic
+    // -----------------------------
+    sessionRes.rows.forEach((row) => {
+      const sessionDate = row.created_at
+        ? row.created_at.toISOString().split("T")[0]
+        : null;
+
+      const landMatch = landMap[sessionDate] || null;
+
+      const status = landMatch && landMatch.status === true ? true : false;
+
+      finalOutput[row.id] = {
+        date: sessionDate,
+        status: status,
+        farmer_name: landMatch ? landMatch.farmer_name : null,
+
+        starting_time: row.starting_time,
+        starting_km: row.starting_km,
+        starting_image: row.starting_image
+          ? baseURL + "images/" + row.starting_image
+          : null,
+
+        end_time: row.end_time,
+        end_km: row.end_km,
+        end_image: row.end_image ? baseURL + "images/" + row.end_image : null,
+
+        transport_charges: row.transport_charges,
+        ticket_image: (row.ticket_image || []).map(
+          (img) => baseURL + "images/" + img
+        ),
+      };
+    });
+
+    // -----------------------------
+    // 4️⃣ Send Response
+    // -----------------------------
+    res.status(200).json({
+      message: "✔ Sessions fetched successfully",
+      data: finalOutput,
+    });
+  } catch (error) {
+    console.error("Get Sessions Error:", error);
+    res.status(500).json({ error: "Server error while fetching sessions" });
+  }
+};
+
+module.exports= { createSession, updateSession, getRegionalSessions, getSessionsByUserId, getAgentSessions }

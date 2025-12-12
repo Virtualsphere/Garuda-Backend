@@ -443,7 +443,7 @@ const getAllRejectedLandFullDetails = async (req, res) => {
   }
 };
 
-const updateLandDetails = async (req, res) => {
+const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -565,14 +565,14 @@ const updateLandDetails = async (req, res) => {
   }
 };
 
-const getAllLandFullDraftDetails = async (req, res) => {
+const getAllLandFullDetails = async (req, res) => {
   try {
     const uniqueId = req.user.unique_id;
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
 
     const result = await pool.query(
       `
-      SELECT 
+     SELECT 
         l.*,
         f.*,
         ld.*,
@@ -585,10 +585,11 @@ const getAllLandFullDraftDetails = async (req, res) => {
       LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
       LEFT JOIN dispute_details d ON l.land_id = d.land_id
       LEFT JOIN document_media dm ON l.land_id = dm.land_id
-      WHERE l.status = $1
-      ORDER BY l.created_at DESC
-    `,
-      ["false"]
+      WHERE l.unique_id = $1
+      AND l.status = $2
+      ORDER BY l.created_at DESC, l.land_id DESC;  -- Changed to show newest first
+  `,
+      [uniqueId, "true"]
     );
 
     if (!result.rows.length)
@@ -666,10 +667,503 @@ const getAllLandFullDraftDetails = async (req, res) => {
   }
 };
 
+const updateLandDetails = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const land_id = req.params.land_id;
+    const updates = buildStructuredUpdate(req.body || {});
+
+    const checkLand = await client.query(
+      `SELECT land_id FROM land_location WHERE land_id = $1`,
+      [land_id]
+    );
+
+    if (checkLand.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: `${land_id} not found` });
+    }
+
+    // Attach uploaded files
+    if (req.files?.passbook_photo) {
+      updates.land_details.passbook_photo =
+        req.files.passbook_photo[0].filename;
+    }
+    if (req.files?.land_border) {
+      updates.gps_tracking.land_border = req.files.land_border[0].filename;
+    }
+    if (req.files?.land_photo) {
+      updates.document_media.land_photo = req.files.land_photo.map(
+        (f) => f.filename
+      );
+    }
+    if (req.files?.land_video) {
+      updates.document_media.land_video = req.files.land_video.map(
+        (f) => f.filename
+      );
+    }
+
+    // Table map
+    const tables = {
+      land_location: { table: "land_location", key: "land_id" },
+      farmer_details: { table: "farmer_details", key: "land_id" },
+      land_details: { table: "land_details", key: "land_id" },
+      gps_tracking: { table: "gps_tracking", key: "land_id" },
+      dispute_details: { table: "dispute_details", key: "land_id" },
+      document_media: { table: "document_media", key: "land_id" },
+    };
+
+    // Update each table
+    for (const key in updates) {
+      const { table, key: idColumn } = tables[key];
+      if (!table) continue;
+
+      const fields = updates[key];
+      const columns = Object.keys(fields);
+      const values = Object.values(fields);
+
+      if (!columns.length) continue;
+
+      // Special case: document_media columns that are arrays must be cast to text[]
+      let setClause;
+      if (key === "document_media") {
+        setClause = columns
+          .map((col, i) => `${col} = $${i + 2}::text[]`)
+          .join(", ");
+      } else {
+        setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
+      }
+
+      await client.query(
+        `UPDATE ${table} SET ${setClause} WHERE ${idColumn} = $1`,
+        [land_id, ...values]
+      );
+    }
+
+    await client.query(
+      `UPDATE land_location 
+      SET created_at = CURRENT_DATE 
+      WHERE land_id = $1`,
+      [land_id]
+    );
+
+    await client.query("COMMIT");
+
+    res.status(200).json({
+      message: "✔ Land updated successfully",
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "Failed to update land" });
+  } finally {
+    client.release();
+  }
+};
+
+const getAllLandFullDraftDetails = async (req, res) => {
+  try {
+    const uniqueId = req.user.unique_id;
+    const baseURL = `${req.protocol}://${req.get("host")}/public/`;
+
+    const result = await pool.query(
+      `
+      SELECT 
+        l.*,
+        f.*,
+        ld.*,
+        gps.*,
+        d.*,
+        dm.*
+      FROM land_location l
+      LEFT JOIN farmer_details f ON l.land_id = f.land_id
+      LEFT JOIN land_details ld ON l.land_id = ld.land_id
+      LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
+      LEFT JOIN dispute_details d ON l.land_id = d.land_id
+      LEFT JOIN document_media dm ON l.land_id = dm.land_id
+      WHERE l.unique_id = $1 
+        AND l.status = $2
+      ORDER BY l.created_at DESC, l.land_id DESC  -- Changed to show newest first
+    `,
+      [uniqueId, "false"]
+    );
+
+    if (!result.rows.length)
+      return res.status(404).json({ message: "No land records found" });
+
+    const response = result.rows.map((row) => ({
+      land_id: row.land_id,
+
+      land_location: {
+        unique_id: row.unique_id,
+        state: row.state,
+        district: row.district,
+        mandal: row.mandal,
+        village: row.village,
+        location: row.location,
+        status: row.status,
+      },
+
+      farmer_details: {
+        name: row.name,
+        phone: row.phone,
+        whatsapp_number: row.whatsapp_number,
+        literacy: row.literacy,
+        age_group: row.age_group,
+        nature: row.nature,
+        land_ownership: row.land_ownership,
+        mortgage: row.mortgage,
+      },
+
+      land_details: {
+        land_area: row.land_area,
+        guntas: row.guntas,
+        price_per_acre: row.price_per_acre,
+        total_land_price: row.total_land_price,
+        passbook_photo: row.passbook_photo
+          ? baseURL + "images/" + row.passbook_photo
+          : null,
+        land_type: row.land_type,
+        water_source: row.water_source,
+        garden: row.garden,
+        shed_details: row.shed_details,
+        farm_pond: row.farm_pond,
+        residental: row.residental,
+        fencing: row.fencing,
+      },
+
+      gps_tracking: {
+        road_path: row.road_path,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        land_border: row.land_border
+          ? baseURL + "images/" + row.land_border
+          : null,
+      },
+
+      dispute_details: {
+        dispute_type: row.dispute_type,
+        siblings_involve_in_dispute: row.siblings_involve_in_dispute,
+        path_to_land: row.path_to_land,
+      },
+
+      document_media: {
+        land_photo: (row.land_photo || []).map((p) => baseURL + "images/" + p),
+        land_video: (row.land_video || []).map((v) => baseURL + "videos/" + v),
+      },
+    }));
+
+    res.status(200).json({
+      message: "✔ All land full details fetched",
+      data: response,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch land details" });
+  }
+};
+
+const getLandData = async (req, res) => {
+  try {
+    const baseURL = `${req.protocol}://${req.get("host")}/public/`;
+
+    // Extract filters
+    const {
+      district,
+      state,
+      price_per_acres,
+      total_land_price,
+      land_area,
+      land_id,
+    } = req.query;
+
+    // Dynamic conditions
+    let conditions = [`l.status = $1`];
+    let values = ["true"];
+    let index = 2;
+
+    // 🆕 Filter by land_id (exact match)
+    if (land_id) {
+      conditions.push(`l.land_id = $${index++}`);
+      values.push(land_id);
+    }
+
+    // Text filters (LIKE)
+    if (district) {
+      conditions.push(`l.district ILIKE $${index++}`);
+      values.push(`%${district}%`);
+    }
+    if (state) {
+      conditions.push(`l.state ILIKE $${index++}`);
+      values.push(`%${state}%`);
+    }
+
+    // Numeric filters (<=)
+    if (price_per_acres) {
+      conditions.push(`ld.price_per_acre <= $${index++}`);
+      values.push(price_per_acres);
+    }
+    if (total_land_price) {
+      conditions.push(`ld.total_land_price <= $${index++}`);
+      values.push(total_land_price);
+    }
+    if (land_area) {
+      conditions.push(`ld.land_area <= $${index++}`);
+      values.push(land_area);
+    }
+
+    // Build final SQL
+    const query = `
+      SELECT 
+        l.*,
+        f.*,
+        ld.*,
+        gps.*,
+        d.*,
+        dm.*
+      FROM land_location l
+      LEFT JOIN farmer_details f ON l.land_id = f.land_id
+      LEFT JOIN land_details ld ON l.land_id = ld.land_id
+      LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
+      LEFT JOIN dispute_details d ON l.land_id = d.land_id
+      LEFT JOIN document_media dm ON l.land_id = dm.land_id
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY l.created_at DESC;
+    `;
+
+    const result = await pool.query(query, values);
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "No land records found" });
+    }
+
+    // Build response format
+    const response = result.rows.map((row) => ({
+      land_id: row.land_id,
+
+      land_location: {
+        unique_id: row.unique_id,
+        state: row.state,
+        district: row.district,
+        mandal: row.mandal,
+        village: row.village,
+        location: row.location,
+        verification: row.verification,
+      },
+
+      farmer_details: {
+        name: row.name,
+        phone: row.phone,
+        whatsapp_number: row.whatsapp_number,
+        literacy: row.literacy,
+        age_group: row.age_group,
+        nature: row.nature,
+        land_ownership: row.land_ownership,
+        mortgage: row.mortgage,
+      },
+
+      land_details: {
+        land_area: row.land_area,
+        guntas: row.guntas,
+        price_per_acre: row.price_per_acre,
+        total_land_price: row.total_land_price,
+        passbook_photo: row.passbook_photo
+          ? baseURL + "images/" + row.passbook_photo
+          : null,
+        land_type: row.land_type,
+        water_source: row.water_source,
+        garden: row.garden,
+        shed_details: row.shed_details,
+        farm_pond: row.farm_pond,
+        residental: row.residental,
+        fencing: row.fencing,
+      },
+
+      gps_tracking: {
+        road_path: row.road_path,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        land_border: row.land_border
+          ? baseURL + "images/" + row.land_border
+          : null,
+      },
+
+      dispute_details: {
+        dispute_type: row.dispute_type,
+        siblings_involve_in_dispute: row.siblings_involve_in_dispute,
+        path_to_land: row.path_to_land,
+      },
+
+      document_media: {
+        land_photo: (row.land_photo || []).map((p) => baseURL + "images/" + p),
+        land_video: (row.land_video || []).map((v) => baseURL + "videos/" + v),
+      },
+    }));
+
+    return res.status(200).json({
+      message: "✔ Land details fetched",
+      filters_used: req.query,
+      count: response.length,
+      data: response,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to fetch land details" });
+  }
+};
+
+const getAllFullLandFullDetails = async (req, res) => {
+  try {
+    const baseURL = `${req.protocol}://${req.get("host")}/public/`;
+
+    // Extract filters
+    const {
+      district,
+      state,
+      price_per_acres,
+      total_land_price,
+      land_area,
+    } = req.query;
+
+    // Dynamic conditions
+    let conditions = [`l.status = $1`];
+    let values = ["true"];
+    let index = 2;
+
+    // Text filters (LIKE search)
+    if (district) {
+      conditions.push(`l.district ILIKE $${index++}`);
+      values.push(`%${district}%`);
+    }
+    if (state) {
+      conditions.push(`l.state ILIKE $${index++}`);
+      values.push(`%${state}%`);
+    }
+
+    // Numeric filters (<= search)
+    if (price_per_acres) {
+      conditions.push(`ld.price_per_acre <= $${index++}`);
+      values.push(price_per_acres);
+    }
+    if (total_land_price) {
+      conditions.push(`ld.total_land_price <= $${index++}`);
+      values.push(total_land_price);
+    }
+    if (land_area) {
+      conditions.push(`ld.land_area <= $${index++}`);
+      values.push(land_area);
+    }
+
+    // Build final SQL query
+    const query = `
+      SELECT 
+        l.*,
+        f.*,
+        ld.*,
+        gps.*,
+        d.*,
+        dm.*
+      FROM land_location l
+      LEFT JOIN farmer_details f ON l.land_id = f.land_id
+      LEFT JOIN land_details ld ON l.land_id = ld.land_id
+      LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
+      LEFT JOIN dispute_details d ON l.land_id = d.land_id
+      LEFT JOIN document_media dm ON l.land_id = dm.land_id
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY l.created_at DESC;
+    `;
+
+    const result = await pool.query(query, values);
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "No land records found" });
+    }
+
+    // Build response format
+    const response = result.rows.map((row) => ({
+      land_id: row.land_id,
+
+      land_location: {
+        unique_id: row.unique_id,
+        state: row.state,
+        district: row.district,
+        mandal: row.mandal,
+        village: row.village,
+        location: row.location,
+        verification: row.verification,
+      },
+
+      farmer_details: {
+        name: row.name,
+        phone: row.phone,
+        whatsapp_number: row.whatsapp_number,
+        literacy: row.literacy,
+        age_group: row.age_group,
+        nature: row.nature,
+        land_ownership: row.land_ownership,
+        mortgage: row.mortgage,
+      },
+
+      land_details: {
+        land_area: row.land_area,
+        guntas: row.guntas,
+        price_per_acre: row.price_per_acre,
+        total_land_price: row.total_land_price,
+        passbook_photo: row.passbook_photo
+          ? baseURL + "images/" + row.passbook_photo
+          : null,
+        land_type: row.land_type,
+        water_source: row.water_source,
+        garden: row.garden,
+        shed_details: row.shed_details,
+        farm_pond: row.farm_pond,
+        residental: row.residental,
+        fencing: row.fencing,
+      },
+
+      gps_tracking: {
+        road_path: row.road_path,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        land_border: row.land_border
+          ? baseURL + "images/" + row.land_border
+          : null,
+      },
+
+      dispute_details: {
+        dispute_type: row.dispute_type,
+        siblings_involve_in_dispute: row.siblings_involve_in_dispute,
+        path_to_land: row.path_to_land,
+      },
+
+      document_media: {
+        land_photo: (row.land_photo || []).map((p) => baseURL + "images/" + p),
+        land_video: (row.land_video || []).map((v) => baseURL + "videos/" + v),
+      },
+    }));
+
+    return res.status(200).json({
+      message: "✔ Land details fetched",
+      filters_used: req.query,
+      count: response.length,
+      data: response,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to fetch land details" });
+  }
+};
+
 module.exports= {
     getAllUniverfiedLandFullDetails,
     getAllRejectedLandFullDetails,
-    updateLandDetails,
+    updateVerficationLandWithPhysicalVerificationDetails,
     getAllLandFullDraftDetails,
-    createFullLandEntry
+    createFullLandEntry,
+    getAllLandFullDetails,
+    updateLandDetails,
+    getLandData,
+    getAllFullLandFullDetails
 }

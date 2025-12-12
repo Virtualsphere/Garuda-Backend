@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const locationController= require("../controller/locationController");
+const roleController= require("../controller/roleController");
 
 router.get('/states', locationController.getStates);
 router.get('/states/:stateId/districts', locationController.getDistrictsByState);

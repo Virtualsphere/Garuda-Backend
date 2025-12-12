@@ -6,34 +6,28 @@ const requireRole = require("../middleware/requireRole");
 const upload = require("../middleware/uploadMiddleware");
 
 const {
-  updateUserDetails,
-  getUserProfile,
-  getAllLandFullDetails,
-  getLandMonthWallet,
-  getTravelWallet,
-  getLandWallet,
-  updateLandMonthWallet,
-  updateTravelWallet,
-  updateLandWallet,
   updateLandDetails,
-  getSessionsByUser,
-  bulkUpdateLandCodes,
-  getLandCodeById,
-  getLandCodeStats,
-  deleteLandCode,
-  updateLandCode,
-  getLandCodesByLocation,
-  generateLandCodes,
-  getLandData
 } = require("../controller/adminController");
 
-const { createBuyer, getBuyers, addWishlist, getWishList } = require("../controller/BuyerController");
+const baseController= require("../controller/baseController");
+
+const buyerController = require("../controller/BuyerController");
 
 const locationController = require('../controller/locationController');
 
 const agentController= require('../controller/agentController');
 
-router.use(verifyToken, requireRole(["admin"]));
+const landController= require("../controller/landController");
+
+const registerController= require("../controller/registerController");
+
+const sessionController= require("../controller/sessionController");
+
+const landCodeController= require("../controller/landCodeController");
+
+const roleController= require("../controller/roleController");
+
+router.use(verifyToken);
 
 const userDetailsUpdate= upload.fields([
   { name: "image", maxCount: 1 },
@@ -49,24 +43,27 @@ const landUpload = upload.fields([
   { name: "land_video" }
 ]);
 
-router.get("/personal/details", getUserProfile);
-router.get('/land', getAllLandFullDetails);
-router.put("/personal/details", userDetailsUpdate, updateUserDetails);
+router.get("/personal/details", registerController.getAllUserProfile);
+router.get('/land', landController.getAllFullLandFullDetails);
+router.put("/personal/details", userDetailsUpdate, registerController.updateByAdminUserDetails);
 router.put("/land/:land_id", landUpload, updateLandDetails);
+router.get("/personal/detail", registerController.getUserProfile);
 
-router.get("/travel/wallet", getTravelWallet);
-router.get("/land/wallet", getLandWallet);
-router.get("/land/wallet/month", getLandMonthWallet);
+router.get("/travel/wallet", baseController.getAllTravelWallet);
+router.get("/land/wallet", baseController.getAllLandWallet);
+router.get("/land/wallet/month", baseController.getAllLandMonthWallet);
+router.get("/physical/wallet", baseController.getAllPhysicalWallet);
 
-router.put("/travel/wallet/:id", updateTravelWallet);
-router.put("/land/wallet/:id", updateLandWallet);
-router.put("/land/month/wallet/:id", updateLandMonthWallet);
+router.put("/travel/wallet/:id", baseController.updateTravelWallet);
+router.put("/land/wallet/:id", baseController.updateLandWallet);
+router.put("/land/month/wallet/:id", baseController.updateLandMonthWallet);
+router.put("/physical/wallet/:id", baseController.updatePhysicalVerificationWallet);
 
-router.get("/buyers", getBuyers);
-router.post("/buyers", createBuyer);
-router.post("/wishlist", addWishlist);
-router.get("/wishlist", getWishList);
-router.get("/session/:session_id", getSessionsByUser);
+router.get("/buyers", buyerController.getBuyers);
+router.post("/buyers", buyerController.createBuyer);
+router.post("/wishlist", buyerController.addWishlist);
+router.get("/wishlist", buyerController.getWishList);
+router.get("/session/:session_id", sessionController.getSessionsByUserId);
 
 router.get('/states', locationController.getStates);
 router.post('/states', locationController.addState);
@@ -108,14 +105,20 @@ router.get('/agents/available-lands', agentController.getAvailableLands);
 
 router.get('/agents/:agentId/lands', agentController.getAgentLands);
 
-router.post('/land-codes/generate', generateLandCodes);
-router.get('/land-codes', getLandCodesByLocation);
-router.get('/land-codes/stats', getLandCodeStats);
-router.get('/land-codes/:id', getLandCodeById);
-router.put('/land-codes/:id', updateLandCode);
-router.delete('/land-codes/:id', deleteLandCode);
-router.post('/land-codes/bulk-update', bulkUpdateLandCodes);
+router.post('/land-codes/generate', landCodeController.generateLandCodes);
+router.get('/land-codes', landCodeController.getLandCodesByLocation);
+router.get('/land-codes/stats', landCodeController.getLandCodeStats);
+router.get('/land-codes/:id', landCodeController.getLandCodeById);
+router.put('/land-codes/:id', landCodeController.updateLandCode);
+router.delete('/land-codes/:id', landCodeController.deleteLandCode);
+router.post('/land-codes/bulk-update', landCodeController.bulkUpdateLandCodes);
 
-router.get('/land/data', getLandData);
+router.get('/land/data', landController.getLandData);
+
+router.get('/roles', roleController.getAllRoles);
+router.get('/roles/:roleName', roleController.getRole);
+router.post('/roles', roleController.createRole);
+router.put('/roles/:roleName/permissions', roleController.updateRolePermissions);
+router.delete('/roles/:roleName', roleController.deleteRole);
 
 module.exports = router;

@@ -6,7 +6,7 @@ const upload = require("../middleware/uploadMiddleware");
 
 const router = express.Router();
 
-router.use(verifyToken, requireRole(["admin"]));
+router.use(verifyToken);
 router.post('/create-user', upload.single(), registerUser);
 
 module.exports = router;
