@@ -17,7 +17,8 @@ const { createAgent } = require('./src/model/agentModel');
 const pool = require('./src/db/db'); // Make sure you have this file
 
 // Import routes
-const userRoutes = require('./src/routes/registerRoutes');
+const registerRoutes = require('./src/routes/registerRoutes');
+const userRoutes= require('./src/routes/userRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const agentRoutes = require('./src/routes/agentRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
@@ -34,13 +35,14 @@ app.use(express.json());
 app.use("/public", express.static(path.join(__dirname, "./src/public")));
 
 // Routes
-app.use('/api', userRoutes);
+app.use('/api', registerRoutes);
 app.use('/auth', authRoutes);
 app.use('/field-executive', agentRoutes);
 app.use('/admin', adminRoutes);
 app.use('/regional', regionalRoutes);
 app.use('/location', baseRoutes);
 app.use('/roles', roleRoutes);
+app.use('/user', userRoutes);
 
 // Health check endpoint
 app.get("/", (req, res) => {

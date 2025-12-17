@@ -15,7 +15,8 @@ const createTables = async (req, res) => {
         remarks TEXT,
         created_at DATE DEFAULT CURRENT_DATE,
         verification_date TIMESTAMP,
-        verification_unique_id VARCHAR(255)
+        verification_unique_id VARCHAR(255),
+        land_code VARCHAR(255)
       );
     `);
 

@@ -9,7 +9,6 @@ const generateLandCodes = async (req, res) => {
         
         const { state_id, district_id, town_id, prefix, count } = req.body;
         
-        // Validate input
         if (!state_id || !district_id || !town_id || !prefix || !count) {
             await client.query('ROLLBACK');
             return res.status(400).json({ 
