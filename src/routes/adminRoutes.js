@@ -5,10 +5,6 @@ const requireRole = require("../middleware/requireRole");
 
 const upload = require("../middleware/uploadMiddleware");
 
-const {
-  updateLandDetails,
-} = require("../controller/adminController");
-
 const baseController= require("../controller/baseController");
 
 const buyerController = require("../controller/BuyerController");
@@ -46,7 +42,7 @@ const landUpload = upload.fields([
 router.get("/personal/details", registerController.getAllUserProfile);
 router.get('/land', landController.getAllFullLandFullDetails);
 router.put("/personal/details", userDetailsUpdate, registerController.updateByAdminUserDetails);
-router.put("/land/:land_id", landUpload, updateLandDetails);
+router.put("/land/:land_id", landUpload, landController.updateVerficationLandWithPhysicalVerificationDetails);
 router.get("/personal/detail", registerController.getUserProfile);
 
 router.get("/travel/wallet", baseController.getAllTravelWallet);

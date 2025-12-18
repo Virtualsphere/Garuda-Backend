@@ -1,57 +1,61 @@
 const pool = require("../db/db");
 const axios = require("axios");
 
-function buildStructuredUpdate(body) {
-  return {
-    land_location: {
-      state: body.state,
-      district: body.district,
-      mandal: body.mandal,
-      village: body.village,
-      location: body.location,
-      status: "true",
-      verification: body.verification
-    },
-    farmer_details: {
-      name: body.name,
-      phone: body.phone,
-      whatsapp_number: body.whatsapp_number,
-      literacy: body.literacy,
-      age_group: body.age_group,
-      nature: body.nature,
-      land_ownership: body.land_ownership,
-      mortgage: body.mortgage,
-    },
-    land_details: {
-      land_area: body.land_area,
-      guntas: body.guntas,
-      price_per_acre: body.price_per_acre,
-      total_land_price: body.total_land_price,
-      land_type: body.land_type,
-      water_source: body.water_source,
-      garden: body.garden,
-      shed_details: body.shed_details,
-      farm_pond: body.farm_pond,
-      residental: body.residental,
-      fencing: body.fencing,
-      passbook_photo: null,
-    },
-    gps_tracking: {
-      road_path: body.road_path,
-      latitude: body.latitude,
-      longitude: body.longitude,
-      land_border: null,
-    },
-    dispute_details: {
-      dispute_type: body.dispute_type,
-      siblings_involve_in_dispute: body.siblings_involve_in_dispute,
-      path_to_land: body.path_to_land,
-    },
-    document_media: {
-      land_photo: [],
-      land_video: [],
-    },
+function buildStructuredUpdate(body = {}) {
+  const updates = {};
+
+  const addField = (table, field, value) => {
+    if (value !== undefined && value !== null && value !== "") {
+      if (!updates[table]) updates[table] = {};
+      updates[table][field] = value;
+    }
   };
+
+  // land_location
+  addField("land_location", "state", body.state);
+  addField("land_location", "district", body.district);
+  addField("land_location", "mandal", body.mandal);
+  addField("land_location", "village", body.village);
+  addField("land_location", "location", body.location);
+  addField("land_location", "status", body.status);
+  addField("land_location", "verification", body.verification);
+  addField("land_location", "remarks", body.remarks);
+  addField("land_location", "unique_id", body.unique_id);
+
+  // farmer_details
+  addField("farmer_details", "name", body.name);
+  addField("farmer_details", "phone", body.phone);
+  addField("farmer_details", "whatsapp_number", body.whatsapp_number);
+  addField("farmer_details", "literacy", body.literacy);
+  addField("farmer_details", "age_group", body.age_group);
+  addField("farmer_details", "nature", body.nature);
+  addField("farmer_details", "land_ownership", body.land_ownership);
+  addField("farmer_details", "mortgage", body.mortgage);
+
+  // land_details
+  addField("land_details", "land_area", body.land_area);
+  addField("land_details", "guntas", body.guntas);
+  addField("land_details", "price_per_acre", body.price_per_acre);
+  addField("land_details", "total_land_price", body.total_land_price);
+  addField("land_details", "land_type", body.land_type);
+  addField("land_details", "water_source", body.water_source);
+  addField("land_details", "garden", body.garden);
+  addField("land_details", "shed_details", body.shed_details);
+  addField("land_details", "farm_pond", body.farm_pond);
+  addField("land_details", "residental", body.residental);
+  addField("land_details", "fencing", body.fencing);
+
+  // gps_tracking
+  addField("gps_tracking", "road_path", body.road_path);
+  addField("gps_tracking", "latitude", body.latitude);
+  addField("gps_tracking", "longitude", body.longitude);
+
+  // dispute_details
+  addField("dispute_details", "dispute_type", body.dispute_type);
+  addField("dispute_details", "siblings_involve_in_dispute", body.siblings_involve_in_dispute);
+  addField("dispute_details", "path_to_land", body.path_to_land);
+
+  return updates;
 }
 
 const updateLandDetails = async (req, res) => {
@@ -73,23 +77,24 @@ const updateLandDetails = async (req, res) => {
       return res.status(404).json({ error: `${land_id} not found` });
     }
 
-    // Attach uploaded files
     if (req.files?.passbook_photo) {
-      updates.land_details.passbook_photo =
-        req.files.passbook_photo[0].filename;
+      updates.land_details = updates.land_details || {};
+      updates.land_details.passbook_photo = req.files.passbook_photo[0].filename;
     }
+
     if (req.files?.land_border) {
+      updates.gps_tracking = updates.gps_tracking || {};
       updates.gps_tracking.land_border = req.files.land_border[0].filename;
     }
+
     if (req.files?.land_photo) {
-      updates.document_media.land_photo = req.files.land_photo.map(
-        (f) => f.filename
-      );
+      updates.document_media = updates.document_media || {};
+      updates.document_media.land_photo = req.files.land_photo.map(f => f.filename);
     }
+
     if (req.files?.land_video) {
-      updates.document_media.land_video = req.files.land_video.map(
-        (f) => f.filename
-      );
+      updates.document_media = updates.document_media || {};
+      updates.document_media.land_video = req.files.land_video.map(f => f.filename);
     }
 
     // Table map
