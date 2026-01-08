@@ -346,4 +346,69 @@ const getAllUserProfile = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, updateUserDetails, getUserProfile, getAllUserProfile, updateByAdminUserDetails };
+const deleteUserProfile = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const uniqueId = req.params.uniqueId;
+
+    await client.query('BEGIN');
+
+    await client.query(`DELETE FROM address WHERE unique_id = $1`, [uniqueId]);
+    await client.query(`DELETE FROM aadhar_card WHERE unique_id = $1`, [uniqueId]);
+    await client.query(`DELETE FROM salary_package WHERE unique_id = $1`, [uniqueId]);
+    await client.query(`DELETE FROM bank_account WHERE unique_id = $1`, [uniqueId]);
+    await client.query(`DELETE FROM work_location WHERE unique_id = $1`, [uniqueId]);
+    await client.query(`DELETE FROM vehicle_information WHERE unique_id = $1`, [uniqueId]);
+
+    await client.query(`DELETE FROM users WHERE unique_id = $1`, [uniqueId]);
+
+    await client.query('COMMIT');
+
+    res.status(200).json({ message: "User deleted successfully" });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error("Delete User Profile Error:", err);
+    res.status(500).json({ error: "Server error" });
+  } finally {
+    client.release();
+  }
+};
+
+const updatePassword = async (req, res) => {
+  try {
+    const { unique_id, newPassword } = req.body;
+
+    if (!unique_id || !newPassword) {
+      return res.status(400).json({
+        error: "unique_id and newPassword are required",
+      });
+    }
+
+    const userRes = await pool.query(
+      `SELECT id FROM users WHERE unique_id = $1`,
+      [unique_id]
+    );
+
+    if (!userRes.rows.length) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      `UPDATE users SET password = $1 WHERE unique_id = $2`,
+      [hashedPassword, unique_id]
+    );
+
+    res.status(200).json({
+      message: "✅ Password reset successfully by admin",
+    });
+  } catch (err) {
+    console.error("Admin Reset Password Error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+module.exports = { registerUser, updateUserDetails, getUserProfile, getAllUserProfile, updateByAdminUserDetails, deleteUserProfile, updatePassword };

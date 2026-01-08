@@ -1,11 +1,8 @@
-// landCodeController.js - Database schema
+
 const pool = require("../db/db");
 
 const createLandCode = async () => {
-    await pool.query(`
-        DROP TABLE IF EXISTS land_code CASCADE;
-    `);
-    
+
     await pool.query(`
         CREATE TABLE IF NOT EXISTS land_code (
             id SERIAL PRIMARY KEY,
@@ -22,18 +19,17 @@ const createLandCode = async () => {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     `);
-    
+
     await pool.query(`
         CREATE INDEX IF NOT EXISTS idx_land_code_location 
         ON land_code(state_id, district_id, town_id);
     `);
-    
+
     await pool.query(`
         CREATE INDEX IF NOT EXISTS idx_land_code_status 
         ON land_code(status);
     `);
-    
-    // Create trigger for updated_at
+
     await pool.query(`
         CREATE OR REPLACE FUNCTION update_land_code_updated_at()
         RETURNS TRIGGER AS $$
@@ -41,13 +37,22 @@ const createLandCode = async () => {
             NEW.updated_at = CURRENT_TIMESTAMP;
             RETURN NEW;
         END;
-        $$ language 'plpgsql';
+        $$ LANGUAGE plpgsql;
     `);
-    
+
     await pool.query(`
-        CREATE TRIGGER update_land_code_updated_at 
-        BEFORE UPDATE ON land_code 
-        FOR EACH ROW EXECUTE FUNCTION update_land_code_updated_at();
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_trigger WHERE tgname = 'update_land_code_updated_at'
+            ) THEN
+                CREATE TRIGGER update_land_code_updated_at
+                BEFORE UPDATE ON land_code
+                FOR EACH ROW
+                EXECUTE FUNCTION update_land_code_updated_at();
+            END IF;
+        END;
+        $$;
     `);
 };
 

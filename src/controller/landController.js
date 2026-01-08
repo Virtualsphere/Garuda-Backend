@@ -1,5 +1,20 @@
 const pool = require("../db/db");
 
+const toJsonArray = (value) => {
+  if (!value) return JSON.stringify([]);
+
+  if (Array.isArray(value)) {
+    return JSON.stringify(value);
+  }
+
+  return JSON.stringify(
+    value
+      .split(",")
+      .map(v => v.trim())
+      .filter(Boolean)
+  );
+};
+
 function buildStructuredUpdate({body = {}, mode, uniqueId}) {
   const updates = {};
 
@@ -47,9 +62,17 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
   addField("land_details", "price_per_acre", body.price_per_acre);
   addField("land_details", "total_land_price", body.total_land_price);
   addField("land_details", "land_type", body.land_type);
-  addField("land_details", "water_source", body.water_source);
-  addField("land_details", "garden", body.garden);
-  addField("land_details", "shed_details", body.shed_details);
+  if (body.water_source !== undefined) {
+    addField("land_details", "water_source", toJsonArray(body.water_source));
+  }
+
+  if (body.garden !== undefined) {
+    addField("land_details", "garden", toJsonArray(body.garden));
+  }
+
+  if (body.shed_details !== undefined) {
+    addField("land_details", "shed_details", toJsonArray(body.shed_details));
+  }
   addField("land_details", "farm_pond", body.farm_pond);
   addField("land_details", "residental", body.residental);
   addField("land_details", "fencing", body.fencing);
@@ -125,6 +148,10 @@ const createFullLandEntry = async (req, res) => {
     const landPhoto = req.files?.land_photo?.map((f) => f.filename) || [];
     const landVideo = req.files?.land_video?.map((f) => f.filename) || [];
 
+    const waterSourceJson = toJsonArray(water_source);
+    const gardenJson = toJsonArray(garden);
+    const shedDetailsJson = toJsonArray(shed_details);
+
     const lastIdRes = await client.query(`
       SELECT land_id FROM land_location ORDER BY created_at DESC LIMIT 1
     `);
@@ -182,9 +209,9 @@ const createFullLandEntry = async (req, res) => {
         total_land_price,
         passbookPhoto,
         land_type,
-        water_source,
-        garden,
-        shed_details,
+        waterSourceJson,
+        gardenJson,
+        shedDetailsJson,
         farm_pond,
         residental,
         fencing,
@@ -525,7 +552,18 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
         setClause = columns
           .map((col, i) => `${col} = $${i + 2}::text[]`)
           .join(", ");
-      } else {
+      }
+      else if (key === "land_details") {
+        setClause = columns
+          .map((col, i) => {
+            if (["water_source", "garden", "shed_details"].includes(col)) {
+              return `${col} = $${i + 2}::jsonb`;
+            }
+            return `${col} = $${i + 2}`;
+          })
+          .join(", ");
+      } 
+      else {
         setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
       }
 
@@ -762,7 +800,18 @@ const updateLandDetails = async (req, res) => {
         setClause = columns
           .map((col, i) => `${col} = $${i + 2}::text[]`)
           .join(", ");
-      } else {
+      }
+      else if (key === "land_details") {
+        setClause = columns
+          .map((col, i) => {
+            if (["water_source", "garden", "shed_details"].includes(col)) {
+              return `${col} = $${i + 2}::jsonb`;
+            }
+            return `${col} = $${i + 2}`;
+          })
+          .join(", ");
+      }
+      else {
         setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
       }
 
@@ -1088,22 +1137,33 @@ const getAllFullLandFullDetails = async (req, res) => {
 
     // Build final SQL query
     const query = `
-      SELECT 
-        l.*,
-        f.*,
-        ld.*,
-        gps.*,
-        d.*,
-        dm.*
-      FROM land_location l
-      LEFT JOIN farmer_details f ON l.land_id = f.land_id
-      LEFT JOIN land_details ld ON l.land_id = ld.land_id
-      LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
-      LEFT JOIN dispute_details d ON l.land_id = d.land_id
-      LEFT JOIN document_media dm ON l.land_id = dm.land_id
-      WHERE ${conditions.join(" AND ")}
-      ORDER BY l.created_at DESC;
-    `;
+  SELECT 
+    l.*,
+    f.*,
+    ld.*,
+    gps.*,
+    d.*,
+    dm.*,
+
+    -- user info
+    u.unique_id AS user_unique_id,
+    u.name AS user_name,
+    u.email AS user_email,
+    u.phone AS user_phone,
+    u.role AS user_role,
+    u.image AS user_image
+
+  FROM land_location l
+  LEFT JOIN farmer_details f ON l.land_id = f.land_id
+  LEFT JOIN land_details ld ON l.land_id = ld.land_id
+  LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
+  LEFT JOIN dispute_details d ON l.land_id = d.land_id
+  LEFT JOIN document_media dm ON l.land_id = dm.land_id
+  LEFT JOIN users u ON l.unique_id = u.unique_id
+
+  WHERE ${conditions.join(" AND ")}
+  ORDER BY l.created_at DESC;
+`;
 
     const result = await pool.query(query, values);
 
@@ -1114,6 +1174,11 @@ const getAllFullLandFullDetails = async (req, res) => {
     // Build response format
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
+
+      user_detail: {
+        user_name: row.user_name,
+        user_role: row.user_role
+      },
 
       land_location: {
         unique_id: row.unique_id,
@@ -1399,6 +1464,8 @@ const getVerifiedLandDetailsById = async (req, res) => {
     });
   }
 };
+
+// const deleteLandDetails = async (req, res) => {}
 
 module.exports= {
     getAllUniverfiedLandFullDetails,

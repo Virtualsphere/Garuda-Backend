@@ -92,6 +92,75 @@ const getPhysicalWallet= async (req, res) =>{
     }
 }
 
+const getPosterWallet= async (req, res)=>{
+  try {
+    const unique_id= req.user.unique_id;
+    const result= await pool.query(
+      `
+        SELECT pw.*, lc.state, lc.district, lc.town, lc.mandal
+        FROM poster_wallet pw
+        LEFT JOIN poster_location lc ON lc.unique_id = pw.unique_id
+        WHERE pw.unique_id = $1
+        ORDER BY pw.date DESC
+      `,
+      [unique_id]
+      );
+      res.status(200).json({
+        message: "Physical wallet records fetched successfully",
+        data: result.rows,
+      });
+  } catch (error) {
+      console.error("Get Physical Wallet Error:", error);
+      res.status(500).json({ error: "Server error" });
+  }
+}
+
+const getJobPostWallet= async (req, res)=>{
+  try {
+    const unique_id= req.user.unique_id;
+    const result= await pool.query(
+      `
+        SELECT jpw.*, lc.state, lc.district, lc.town, lc.mandal
+        FROM job_post_wallet jpw
+        LEFT JOIN job_location lc ON lc.unique_id = jpw.unique_id
+        WHERE jpw.unique_id = $1
+        ORDER BY jpw.date DESC
+      `,
+      [unique_id]
+      );
+      res.status(200).json({
+        message: "Physical wallet records fetched successfully",
+        data: result.rows,
+      });
+  } catch (error) {
+      console.error("Get Physical Wallet Error:", error);
+      res.status(500).json({ error: "Server error" });
+  }
+}
+
+const getAdsWallet= async (req, res)=>{
+  try {
+    const unique_id= req.user.unique_id;
+    const result= await pool.query(
+      `
+        SELECT aw.*, lc.state, lc.district, lc.town, lc.mandal
+        FROM ads_wallet aw
+        LEFT JOIN our_ads lc ON lc.unique_id = aw.unique_id
+        WHERE aw.unique_id = $1
+        ORDER BY aw.date DESC
+      `,
+      [unique_id]
+      );
+      res.status(200).json({
+        message: "Physical wallet records fetched successfully",
+        data: result.rows,
+      });
+  } catch (error) {
+      console.error("Get Physical Wallet Error:", error);
+      res.status(500).json({ error: "Server error" });
+  }
+}
+
 const getAllTravelWallet = async (req, res) => {
   try {
     const result = await pool.query(
@@ -309,5 +378,8 @@ module.exports= {
     updateTravelWallet,
     updateLandWallet,
     updateLandMonthWallet,
-    updatePhysicalVerificationWallet
+    updatePhysicalVerificationWallet,
+    getAdsWallet,
+    getJobPostWallet,
+    getPosterWallet
 }

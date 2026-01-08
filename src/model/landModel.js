@@ -45,9 +45,9 @@ const createTables = async (req, res) => {
         total_land_price DOUBLE PRECISION,
         passbook_photo VARCHAR(100),
         land_type VARCHAR(100),
-        water_source VARCHAR(100),
-        garden VARCHAR(100),
-        shed_details VARCHAR(100),
+        water_source JSONB DEFAULT '{}',
+        garden JSONB DEFAULT '{}',
+        shed_details JSONB DEFAULT '{}',
         farm_pond VARCHAR(100),
         residental VARCHAR(100),
         fencing VARCHAR(100)

@@ -44,6 +44,8 @@ router.get('/land', landController.getAllFullLandFullDetails);
 router.put("/personal/details", userDetailsUpdate, registerController.updateByAdminUserDetails);
 router.put("/land/:land_id", landUpload, landController.updateVerficationLandWithPhysicalVerificationDetails);
 router.get("/personal/detail", registerController.getUserProfile);
+router.put("/update/password", registerController.updatePassword);
+router.delete("/personal/detial/:uniqueId", registerController.deleteUserProfile);
 
 router.get("/travel/wallet", baseController.getAllTravelWallet);
 router.get("/land/wallet", baseController.getAllLandWallet);
