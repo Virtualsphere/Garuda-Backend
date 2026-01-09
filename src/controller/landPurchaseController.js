@@ -5,7 +5,7 @@ const createLandPurchase = async (req, res) => {
   try {
     await client.query("BEGIN");
     const unique_id = req.user.unique_id;
-    const { land_id, land_code } = req.body;
+    const { land_id, land_code, name, phone, description } = req.body;
 
     if (!land_id || !land_code) {
       return res.status(400).json({ error: "land_id and land_code are required" });
@@ -26,10 +26,10 @@ const createLandPurchase = async (req, res) => {
     const status = "pending";
 
     const result = await client.query(
-      `INSERT INTO land_purchase_request (land_id, unique_id, land_code, status)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO land_purchase_request (land_id, unique_id, land_code, status, phone, name, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [land_id, unique_id, land_code, status]
+      [land_id, unique_id, land_code, status, phone, name, description]
     );
 
     const purchase = result.rows[0];
