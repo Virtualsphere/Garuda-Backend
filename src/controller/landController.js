@@ -1254,10 +1254,10 @@ const getAllFullLandFullDetails = async (req, res) => {
 const getAllVerfiedLandFullDetails = async (req, res) => {
   try {
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
+    const userUniqueId = req.user?.unique_id || null;
 
-    const result = await pool.query(
-      `
-     SELECT 
+    let query = `
+      SELECT 
         l.*,
         f.*,
         ld.*,
@@ -1271,14 +1271,31 @@ const getAllVerfiedLandFullDetails = async (req, res) => {
       LEFT JOIN dispute_details d ON l.land_id = d.land_id
       LEFT JOIN document_media dm ON l.land_id = dm.land_id
       WHERE l.verification = $1
-      AND l.status = $2
-      ORDER BY l.created_at DESC, l.land_id DESC;
-  `,
-      ["verified" ,"true"]
-    );
+        AND l.status = $2
+    `;
 
-    if (!result.rows.length)
+    const values = ["verified", "true"];
+
+    // Exclude purchased lands only if user is logged in
+    if (userUniqueId) {
+      query += `
+        AND NOT EXISTS (
+          SELECT 1
+          FROM land_purchase_request lpr
+          WHERE lpr.land_id = l.land_id
+            AND lpr.unique_id = $3
+        )
+      `;
+      values.push(userUniqueId);
+    }
+
+    query += ` ORDER BY l.created_at DESC, l.land_id DESC;`;
+
+    const result = await pool.query(query, values);
+
+    if (!result.rows.length) {
       return res.status(404).json({ message: "No land records found" });
+    }
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -1291,7 +1308,7 @@ const getAllVerfiedLandFullDetails = async (req, res) => {
         village: row.village,
         location: row.location,
         status: row.status,
-        verification: row.verification
+        verification: row.verification,
       },
 
       farmer_details: {
@@ -1338,8 +1355,12 @@ const getAllVerfiedLandFullDetails = async (req, res) => {
       },
 
       document_media: {
-        land_photo: (row.land_photo || []).map((p) => baseURL + "images/" + p),
-        land_video: (row.land_video || []).map((v) => baseURL + "videos/" + v),
+        land_photo: (row.land_photo || []).map(
+          (p) => baseURL + "images/" + p
+        ),
+        land_video: (row.land_video || []).map(
+          (v) => baseURL + "videos/" + v
+        ),
       },
     }));
 

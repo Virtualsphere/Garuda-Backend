@@ -1,15 +1,76 @@
 const express = require("express");
 const router = express.Router();
+
 const verifyToken = require("../middleware/authMiddleware");
-const requireRole = require("../middleware/requireRole");
 const upload = require("../middleware/uploadMiddleware");
-const landController= require("../controller/landController");
-const sessionController= require("../controller/sessionController");
 const registerController= require("../controller/registerController");
-const baseController= require("../controller/baseController");
+const marketingController = require("../controller/marketingController");
+const sessionController= require("../controller/sessionController");
 
 router.use(verifyToken);
 
+const marketingDetailsUpdate= upload.fields([
+  { name: "image", maxCount: 1 },
+  { name: "photo", maxCount: 1},
+  { name: "aadhar_front_image", maxCount: 1 },
+  { name: "aadhar_back_image", maxCount: 1 }
+]);
 
+const startginSessionUpload = upload.fields([
+  { name: "starting_image", maxCount: 1 }
+]);
+
+const endingSessionUpload= upload.fields([
+  { name: "end_image", maxCount: 1 },
+  { name: "ticket_image" }
+]);
+
+router.get("/personal/details", registerController.getUserProfile);
+router.put("/personal/details", marketingDetailsUpdate, registerController.updateUserDetails);
+
+router.post("/session", startginSessionUpload, sessionController.createSession);
+router.put("/update/session/:id", endingSessionUpload, sessionController.updateSession);
+router.get('/session', sessionController.getMarketingSessions);
+
+router.post(
+  "/poster-sticking",
+  upload.any(),
+  marketingController.createPosterSticking
+);
+
+router.post(
+  "/job-posting",
+  upload.any(),
+  marketingController.createJobPosting
+);
+
+router.post(
+  "/tv-advertising",
+  upload.any(),
+  marketingController.createTVAdvertising
+);
+
+router.post(
+  "/banner-advertising",
+  upload.any(),
+  marketingController.createBannerAdvertising
+);
+
+router.post(
+  "/hoarding",
+  upload.fields([
+    { name: "hoarding_photo", maxCount: 1 }
+  ]),
+  marketingController.createHoardingDetails
+);
+
+router.post(
+  "/our-ads",
+  upload.fields([
+    { name: "ad_photo", maxCount: 1 },
+    { name: "location_photo", maxCount: 1 }
+  ]),
+  marketingController.createOurAds
+);
 
 module.exports = router;

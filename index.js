@@ -26,6 +26,7 @@ const adminRoutes = require('./src/routes/adminRoutes');
 const baseRoutes= require('./src/routes/baseRoutes');
 const regionalRoutes= require('./src/routes/regionalRoutes');
 const roleRoutes= require('./src/routes/permissionRoutes');
+const marketingRoutes= require('./src/routes/marketingRoutes');
 
 dotenv.config();
 const app = express();
@@ -44,6 +45,7 @@ app.use('/regional', regionalRoutes);
 app.use('/location', baseRoutes);
 app.use('/roles', roleRoutes);
 app.use('/user', userRoutes);
+app.use('/marketing', marketingRoutes);
 
 // Health check endpoint
 app.get("/", (req, res) => {

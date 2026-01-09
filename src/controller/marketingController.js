@@ -52,7 +52,7 @@ const createPosterSticking = async (req, res) => {
       `INSERT INTO poster_wallet 
       (poster_location_id, unique_id, date, number_of_posters, amount, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-      [posterLocationId, unique_id, new Date(), shops.lenght, 0, "pending"]
+      [posterLocationId, unique_id, new Date(), shops.length, 0, "pending"]
     );
 
     await client.query("COMMIT");
@@ -118,7 +118,7 @@ const createJobPosting = async (req, res) => {
     await client.query(
       `INSERT INTO job_post_wallet 
       (job_location_id, unique_id, date, number_of_post, amount, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+      VALUES ($1, $2, $3, $4, $5, $6);`,
       [jobLocationId, unique_id, new Date(), postings.length, 0, "pending"]
     );
 
