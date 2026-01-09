@@ -379,7 +379,7 @@ const getMarketingSessions = async (req, res) => {
   try {
     const unique_id = req.user.unique_id;
 
-    // 1️⃣ Get all sessions of the user
+    // 1️⃣ Get all sessions
     const sessionRes = await client.query(
       `
       SELECT *
@@ -391,12 +391,10 @@ const getMarketingSessions = async (req, res) => {
     );
 
     const sessions = sessionRes.rows;
-
-    // 2️⃣ For each session, find poster / job / ads status
     const finalData = [];
 
     for (const s of sessions) {
-      const sessionDate = s.created_at;
+      const sessionDate = s.created_at; // TIMESTAMP
 
       // 🎯 Poster count
       const posterRes = await client.query(
@@ -404,7 +402,7 @@ const getMarketingSessions = async (req, res) => {
         SELECT COUNT(*)::int AS count
         FROM poster_wallet
         WHERE unique_id = $1
-        AND DATE(date) = $2
+        AND DATE(date::timestamp) = DATE($2)
         `,
         [unique_id, sessionDate]
       );
@@ -415,26 +413,25 @@ const getMarketingSessions = async (req, res) => {
         SELECT COUNT(*)::int AS count
         FROM job_post_wallet
         WHERE unique_id = $1
-        AND DATE(date) = $2
+        AND DATE(date::timestamp) = DATE($2)
         `,
         [unique_id, sessionDate]
       );
 
-      // 🎯 Ads count (date range based)
+      // 🎯 Ads count (date range)
       const adsRes = await client.query(
         `
         SELECT COUNT(*)::int AS count
         FROM our_ads oa
-        JOIN job_post_wallet jw ON jw.ads_id = oa.id
-        WHERE jw.unique_id = $1
-        AND $2 BETWEEN oa.from_date AND oa.to_date
+        JOIN ads_wallet aw ON aw.ads_id::int = oa.id
+        WHERE aw.unique_id = $1
+        AND DATE(date::timestamp) = DATE($2)
         `,
         [unique_id, sessionDate]
       );
 
       finalData.push({
         ...s,
-
         poster_count: posterRes.rows[0].count,
         job_count: jobRes.rows[0].count,
         ads_count: adsRes.rows[0].count,

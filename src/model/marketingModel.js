@@ -4,7 +4,7 @@ const marketingTable = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS poster_location (
       id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
+      unique_id VARCHAR(255),
       state VARCHAR(100),
       district VARCHAR(100),
       town VARCHAR(100),
@@ -34,7 +34,7 @@ const marketingTable = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS job_location (
       id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
+      unique_id VARCHAR(255),
       state VARCHAR(100),
       district VARCHAR(100),
       town VARCHAR(100),
@@ -61,7 +61,7 @@ const marketingTable = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS hoarding_details (
       id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
+      unique_id VARCHAR(255),
       state VARCHAR(100),
       district VARCHAR(100),
       town VARCHAR(100),
@@ -76,15 +76,15 @@ const marketingTable = async () => {
   `);
 
   await pool.query(`
-    CREATE TABLE tv_advertising_batch (
+    CREATE TABLE IF NOT EXISTS tv_advertising_batch (
       id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
+      unique_id VARCHAR(255) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
   await pool.query(`
-    CREATE TABLE tv_advertising_contacts (
+    CREATE TABLE IF NOT EXISTS tv_advertising_contacts (
       id SERIAL PRIMARY KEY,
       tv_batch_id INT NOT NULL,
 
@@ -111,15 +111,15 @@ const marketingTable = async () => {
   `);
 
   await pool.query(`
-    CREATE TABLE banner_advertising_batch (
+    CREATE TABLE IF NOT EXISTS banner_advertising_batch (
       id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255) UNIQUE NOT NULL,
+      unique_id VARCHAR(255) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
   await pool.query(`
-    CREATE TABLE banner_advertising_contacts (
+    CREATE TABLE IF NOT EXISTS banner_advertising_contacts (
       id SERIAL PRIMARY KEY,
       banner_batch_id INT NOT NULL,
 
@@ -146,9 +146,10 @@ const marketingTable = async () => {
   `);
 
   await pool.query(`
-    CREATE TABLE our_ads (
+    CREATE TABLE IF NOT EXISTS our_ads (
       id SERIAL PRIMARY KEY,
       type VARCHAR(255),
+      unique_id VARCHAR(255),
       from_date VARCHAR(255),
       to_date VARCHAR(255),
       ad_photo VARCHAR(255),
@@ -159,7 +160,8 @@ const marketingTable = async () => {
       address VARCHAR(255),
       latitude DECIMAL(10,8),
       longitude DECIMAL(11,8),
-      location_photo VARCHAR(255)
+      location_photo VARCHAR(255),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 };

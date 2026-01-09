@@ -21,11 +21,16 @@ const createPosterSticking = async (req, res) => {
     const posterLocationId = locationRes.rows[0].id;
 
     for (let i = 0; i < shops.length; i++) {
-      const shopPhoto =
-        req.files?.[`shop_photo_${i}`]?.[0]?.filename || null;
-      const stickerPhoto =
-        req.files?.[`sticker_photo_${i}`]?.[0]?.filename || null;
+      const shopPhoto = req.files?.find(
+        file => file.fieldname === `shop_photo_${i}`
+      )?.filename || null;
 
+      const stickerPhoto = req.files?.find(
+        file => file.fieldname === `sticker_photo_${i}`
+      )?.filename || null;
+
+      console.log("Shop Photo:", shopPhoto);
+      console.log("Sticker Photo:", stickerPhoto);
       const shop = shops[i];
 
       await client.query(
@@ -51,7 +56,7 @@ const createPosterSticking = async (req, res) => {
     await client.query(
       `INSERT INTO poster_wallet 
       (poster_location_id, unique_id, date, number_of_posters, amount, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+      VALUES ($1, $2, $3, $4, $5, $6);`,
       [posterLocationId, unique_id, new Date(), shops.length, 0, "pending"]
     );
 
@@ -92,10 +97,16 @@ const createJobPosting = async (req, res) => {
 
     // 2️⃣ posting_details
     for (let i = 0; i < postings.length; i++) {
-      const placePhoto =
-        req.files?.[`place_photo_${i}`]?.[0]?.filename || null;
-      const stickerPhoto =
-        req.files?.[`sticker_photo_${i}`]?.[0]?.filename || null;
+      const placePhoto = req.files?.find(
+        file => file.fieldname === `place_photo_${i}`
+      )?.filename || null;
+
+      const stickerPhoto = req.files?.find(
+        file => file.fieldname === `sticker_photo_${i}`
+      )?.filename || null;
+
+      console.log(placePhoto);
+      console.log(stickerPhoto);
 
       const post = postings[i];
 
@@ -159,7 +170,9 @@ const createTVAdvertising = async (req, res) => {
 
     // 2️⃣ contacts
     for (let i = 0; i < contacts.length; i++) {
-      const photo = req.files?.[`photo_${i}`]?.[0]?.filename || null;
+      const photo = req.files?.find(
+        file => file.fieldname === `photo_${i}`
+      )?.filename || null;
       const c = contacts[i];
 
       await client.query(
@@ -219,7 +232,9 @@ const createBannerAdvertising = async (req, res) => {
     const batchId = batchRes.rows[0].id;
 
     for (let i = 0; i < contacts.length; i++) {
-      const photo = req.files?.[`photo_${i}`]?.[0]?.filename || null;
+      const photo = req.files?.find(
+        file => file.fieldname === `photo_${i}`
+      )?.filename || null;
       const c = contacts[i];
 
       await client.query(
@@ -277,7 +292,6 @@ const createHoardingDetails = async (req, res) => {
 
     const unique_id = req.user.unique_id;
 
-    // 📷 Image handling (same as land entry)
     const hoardingPhoto =
       req.files?.hoarding_photo?.[0]?.filename || null;
 
@@ -356,6 +370,7 @@ const createOurAds = async (req, res) => {
       INSERT INTO our_ads
       (
         type,
+        unique_id,
         from_date,
         to_date,
         ad_photo,
@@ -368,11 +383,12 @@ const createOurAds = async (req, res) => {
         longitude,
         location_photo
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
       RETURNING id
       `,
       [
         type,
+        unique_id,
         from_date,
         to_date,
         adPhoto,

@@ -6,6 +6,7 @@ const upload = require("../middleware/uploadMiddleware");
 const registerController= require("../controller/registerController");
 const marketingController = require("../controller/marketingController");
 const sessionController= require("../controller/sessionController");
+const walletController= require("../controller/baseController");
 
 router.use(verifyToken);
 
@@ -72,5 +73,15 @@ router.post(
   ]),
   marketingController.createOurAds
 );
+
+router.get('/poster-sticking', verifyToken, marketingController.getPosterSticking);
+router.get('/job-posting', verifyToken, marketingController.getJobPosting);
+router.get('/tv-advertising', verifyToken, marketingController.getTVAdvertising);
+router.get('/banner-advertising', verifyToken, marketingController.getBannerAdvertising);
+router.get('/hoarding', verifyToken, marketingController.getHoardingDetails);
+router.get('/our-ads', verifyToken, marketingController.getOurAds);
+router.get('/poster-wallet', verifyToken, walletController.getPosterWallet);
+router.get('/job-wallet', verifyToken, walletController.getJobPostWallet);
+router.get('/ads-wallet', verifyToken, walletController.getAdsWallet);
 
 module.exports = router;

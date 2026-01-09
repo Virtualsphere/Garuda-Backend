@@ -13,6 +13,7 @@ const { createLandCode }= require('./src/model/landCodeModel');
 const { createRoleTable }= require('./src/model/roleModel');
 const { createAgent } = require('./src/model/agentModel');
 const { creatLandPurchaseRequestTable }= require('./src/model/landPurchaseRequest');
+const { marketingTable }= require('./src/model/marketingModel');
 
 // Import database pool
 const pool = require('./src/db/db'); // Make sure you have this file
@@ -120,6 +121,7 @@ const initializeDatabase = async () => {
     await createRoleTable();
     await createDefaultRoles();
     await creatLandPurchaseRequestTable();
+    await marketingTable();
     
     console.log("✅ Database initialization completed");
   } catch (error) {
