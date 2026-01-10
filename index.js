@@ -14,6 +14,8 @@ const { createRoleTable }= require('./src/model/roleModel');
 const { createAgent } = require('./src/model/agentModel');
 const { creatLandPurchaseRequestTable }= require('./src/model/landPurchaseRequest');
 const { marketingTable }= require('./src/model/marketingModel');
+const { createBannerTable }= require('./src/model/bannerModel');
+const { createReviewTable }= require('./src/model/reviewModel');
 
 // Import database pool
 const pool = require('./src/db/db'); // Make sure you have this file
@@ -122,6 +124,8 @@ const initializeDatabase = async () => {
     await createDefaultRoles();
     await creatLandPurchaseRequestTable();
     await marketingTable();
+    await createBannerTable();
+    await createReviewTable();
     
     console.log("✅ Database initialization completed");
   } catch (error) {

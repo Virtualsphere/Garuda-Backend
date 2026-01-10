@@ -23,6 +23,10 @@ const landCodeController= require("../controller/landCodeController");
 
 const roleController= require("../controller/roleController");
 
+const reviewController= require("../controller/reviewController");
+
+const bannerController= require("../controller/bannerController");
+
 router.use(verifyToken);
 
 const userDetailsUpdate= upload.fields([
@@ -30,6 +34,14 @@ const userDetailsUpdate= upload.fields([
   { name: "photo", maxCount: 1},
   { name: "aadhar_front_image", maxCount: 1 },
   { name: "aadhar_back_image", maxCount: 1 }
+]);
+
+const reviewDetail= upload.fields([
+  { name: "image", maxCount: 1 }
+]);
+
+const bannerDetail= upload.fields([
+  { name: "image", maxCount: 1 }
 ]);
 
 const landUpload = upload.fields([
@@ -118,5 +130,8 @@ router.get('/roles/:roleName', roleController.getRole);
 router.post('/roles', roleController.createRole);
 router.put('/roles/:roleName/permissions', roleController.updateRolePermissions);
 router.delete('/roles/:roleName', roleController.deleteRole);
+
+router.post('/review', reviewDetail, reviewController.createReview);
+router.post('/banner', bannerDetail, bannerController.createBanner);
 
 module.exports = router;

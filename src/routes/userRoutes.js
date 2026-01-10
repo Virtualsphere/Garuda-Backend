@@ -4,6 +4,8 @@ const registerController= require("../controller/registerController");
 const upload = require("../middleware/uploadMiddleware");
 const verifyToken = require("../middleware/authMiddleware");
 const landPurchaseRequestController= require("../controller/landPurchaseController");
+const bannerController= require('../controller/bannerController');
+const reviewController= require('../controller/reviewController');
 
 const router = express.Router();
 
@@ -22,5 +24,7 @@ router.put('/details', verifyToken, userDetailsUpdate, registerController.update
 router.get('/verified/land/:id', landController.getVerifiedLandDetailsById);
 router.post('/land-purchase', verifyToken, landPurchaseRequestController.createLandPurchase);
 router.get('/land-purchase', verifyToken, landPurchaseRequestController.getLandPurchaseDetail);
+router.get('/banner', bannerController.getBanner);
+router.get('/review', reviewController.getReview);
 
 module.exports = router;
