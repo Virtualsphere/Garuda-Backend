@@ -26,19 +26,18 @@ const createReview = async (req, res) => {
   }
 };
 
-const getReview= async (req, res)=>{
-    try {
+const getReview = async (req, res) => {
+  try {
     const baseURL = `${req.protocol}://${req.get("host")}/public/images/`;
 
-    const result = await pool.query(
-      `SELECT * FROM user_review`
-    );
+    const result = await pool.query(`SELECT * FROM user_review`);
 
-    const data= result.rows[0];
+    const data = result.rows.map(row => ({
+      ...row,
+      image: row.image ? baseURL + row.image : null
+    }));
 
-    data.image= data.image ? baseURL + data.image : null;
-
-    res.status(201).json({
+    res.status(200).json({
       message: '✅ Review fetch successfully',
       data
     });
@@ -46,6 +45,6 @@ const getReview= async (req, res)=>{
     console.error('Review Error:', error);
     res.status(500).json({ error: 'Server error' });
   }
-}
+};
 
 module.exports= { createReview, getReview }
