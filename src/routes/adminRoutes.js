@@ -145,7 +145,10 @@ router.put('/roles/:roleName/permissions', roleController.updateRolePermissions)
 router.delete('/roles/:roleName', roleController.deleteRole);
 
 router.post('/review', reviewDetail, reviewController.createReview);
+router.get('/review', reviewController.getReview);
+router.delete('/review/:reviewId', reviewController.deleteReview);
 router.post('/banner', bannerDetail, bannerController.createBanner);
+router.get('/banner', bannerDetail, bannerController.getBanner);
 
 router.get('/notification', notificationController.getNotification);
 router.get('/notification', notificationController.updateNotification);

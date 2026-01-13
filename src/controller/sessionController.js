@@ -3,36 +3,16 @@ const axios = require("axios");
 
 const createSession = async (req, res) => {
   try {
-    const {
-      starting_time,
-      starting_km,
-      end_time,
-      end_km,
-      end_image,
-      transport_charges,
-      ticket_image,
-    } = req.body;
-
+    const { starting_time, starting_km } = req.body;
     const starting_image = req.files?.starting_image?.[0]?.filename || null;
-
     const unique_id = req.user.unique_id;
 
     const result = await pool.query(
       `INSERT INTO session 
-      (unique_id, starting_time, starting_km, starting_image, end_time, end_km, end_image, transport_charges, ticket_image)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       (unique_id, starting_time, starting_km, starting_image)
+       VALUES ($1,$2,$3,$4)
        RETURNING *;`,
-      [
-        unique_id,
-        starting_time,
-        starting_km,
-        starting_image,
-        end_time,
-        end_km,
-        end_image,
-        transport_charges,
-        ticket_image,
-      ]
+      [unique_id, starting_time, starting_km, starting_image]
     );
 
     res.status(201).json({
@@ -48,75 +28,83 @@ const createSession = async (req, res) => {
 const updateSession = async (req, res) => {
   try {
     const session_id = req.params.id;
+    const unique_id = req.user.unique_id;
 
-    let data = { ...req.body };
+    const {
+      end_time,
+      end_km,
+      transport_charges,
+    } = req.body;
 
-    // Single image
+    let end_image = null;
+    let ticket_image = null;
+
     if (req.files?.end_image) {
-      data.end_image = req.files.end_image[0].filename;
+      end_image = req.files.end_image[0].filename;
     }
 
-    // Multiple images → array
     if (req.files?.ticket_image) {
-      data.ticket_image = req.files.ticket_image.map((f) => f.filename);
+      ticket_image = req.files.ticket_image.map(f => f.filename);
     }
 
-    if (Object.keys(data).length === 0) {
-      return res.status(400).json({ error: "No fields to update" });
-    }
-
-    const columns = Object.keys(data);
-    const values = Object.values(data);
-
-    // Build SET clause with correct casting for arrays
-    const setClause = columns
-      .map((col, i) => {
-        if (col === "ticket_image") {
-          return `${col} = $${i + 2}::text[]`; // 👈 IMPORTANT
-        }
-        return `${col} = $${i + 2}`;
-      })
-      .join(", ");
-
-    const query = `
-      UPDATE session
-      SET ${setClause}
-      WHERE id = $1
-      RETURNING *;
-    `;
-
-    const result = await pool.query(query, [session_id, ...values]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Session not found" });
-    }
-
-    const updated = result.rows[0];
-
-    const total_km =
-      updated.end_km && updated.starting_km
-        ? Number(updated.end_km) - Number(updated.starting_km)
-        : null;
-
-    // 3️⃣ Insert directly into travel_wallet
-    await pool.query(
-      `INSERT INTO travel_wallet 
-        (session_id, unique_id, date, total_km, amount, status)
-       VALUES ($1, $2, $3, $4, $5, $6);`,
+    
+    const endResult = await pool.query(
+      `INSERT INTO end_session 
+       (unique_id, session_id, end_time, end_km, end_image, transport_charges, ticket_image)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       RETURNING *;`,
       [
-        updated.id,
-        updated.unique_id,
-        updated.created_at,
-        total_km,
-        0,
-        "pending",
+        unique_id,
+        session_id,
+        end_time,
+        end_km,
+        end_image,
+        transport_charges,
+        ticket_image
       ]
     );
 
-    // 4️⃣ Response
-    res.status(200).json({
-      message: "✅ Session updated & travel wallet entry created",
-      data: updated,
+    const endData = endResult.rows[0];
+    
+    const sessionRes = await pool.query(
+      `SELECT starting_km, created_at FROM session WHERE id = $1`,
+      [session_id]
+    );
+
+    if (sessionRes.rows.length === 0) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    const starting_km = sessionRes.rows[0].starting_km;
+    const created_at = sessionRes.rows[0].created_at;
+
+    const total_km =
+      starting_km && end_km ? Number(end_km) - Number(starting_km) : null;
+
+    const walletCheck = await pool.query(
+      `SELECT id FROM travel_wallet WHERE session_id = $1`,
+      [session_id]
+    );
+
+    if (walletCheck.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO travel_wallet
+         (session_id, unique_id, date, total_km, amount, status)
+         VALUES ($1,$2,$3,$4,$5,$6);`,
+        [
+          session_id,
+          unique_id,
+          created_at,
+          total_km,
+          transport_charges || 0,
+          "pending"
+        ]
+      );
+    }
+
+    res.status(201).json({
+      message: "✅ End session added successfully",
+      data: endData
     });
   } catch (err) {
     console.error(err);
@@ -127,17 +115,11 @@ const updateSession = async (req, res) => {
 const getRegionalSessions = async (req, res) => {
   try {
     const unique_id = req.user.unique_id;
-
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
 
     const landRes = await pool.query(
       `
-      SELECT 
-        ll.land_id,
-        ll.created_at,
-        ll.status,
-        ll.verification_date,
-        fd.name AS farmer_name
+      SELECT ll.land_id, ll.created_at, ll.status, ll.verification_date, fd.name AS farmer_name
       FROM land_location ll
       LEFT JOIN farmer_details fd ON fd.land_id = ll.land_id
       WHERE ll.verification_unique_id = $1
@@ -145,151 +127,139 @@ const getRegionalSessions = async (req, res) => {
       [unique_id]
     );
 
-    const landCreatedMap = {};
-    const verificationMap = {};
+    const landMap = {};
+    const verifyMap = {};
 
-    landRes.rows.forEach((row) => {
-      const landId = row.land_id;
-
-      if (row.created_at) {
-        const landDate = row.created_at.toISOString().split("T")[0];
-
-        if (!landCreatedMap[landDate]) landCreatedMap[landDate] = [];
-
-        landCreatedMap[landDate].push({
-          land_id: landId,
-          farmer_name: row.farmer_name || null,
-          status: row.status === "true",
-        });
+    landRes.rows.forEach(r => {
+      if (r.created_at) {
+        const d = r.created_at.toISOString().split("T")[0];
+        landMap[d] = r.farmer_name;
       }
-
-      if (row.verification_date) {
-        const verifyDate = row.verification_date.toISOString().split("T")[0];
-
-        if (!verificationMap[verifyDate]) verificationMap[verifyDate] = [];
-
-        verificationMap[verifyDate].push(landId);
+      if (r.verification_date) {
+        const d = r.verification_date.toISOString().split("T")[0];
+        verifyMap[d] = true;
       }
     });
 
     const sessionRes = await pool.query(
-      `SELECT * FROM session WHERE unique_id = $1 ORDER BY id DESC`,
+      `
+      SELECT s.*, e.*
+      FROM session s
+      LEFT JOIN end_session e ON e.session_id = s.id
+      WHERE s.unique_id = $1
+      ORDER BY s.id DESC, e.id ASC
+      `,
       [unique_id]
     );
 
-    if (sessionRes.rows.length === 0) {
-      return res.status(404).json({
-        message: "No sessions found for this user",
-      });
-    }
+    const map = {};
 
-    let finalOutput = {};
+    sessionRes.rows.forEach(row => {
+      const date = row.created_at.toISOString().split("T")[0];
 
-    sessionRes.rows.forEach((row) => {
-      const sessionDate = row.created_at.toISOString().split("T")[0];
+      if (!map[date]) {
+        map[date] = {
+          date,
+          land_status: !!landMap[date],
+          verification_status: !!verifyMap[date],
+          farmer_name: landMap[date] || null,
+          starting_km: row.starting_km,
+          starting_image: row.starting_image
+            ? baseURL + "images/" + row.starting_image
+            : null,
+          end_sessions: []
+        };
+      }
 
-      const landEntries = landCreatedMap[sessionDate] || [];
-      const verifyEntries = verificationMap[sessionDate] || [];
-
-      const land_status = landEntries.length > 0;
-      const verification_status = verifyEntries.length > 0;
-
-      finalOutput[row.id] = {
-        date: sessionDate,
-        land_status,
-        verification_status,
-        farmer_name: landEntries[0]?.farmer_name || null,
-
-        starting_km: row.starting_km,
-        starting_image: row.starting_image
-          ? baseURL + "images/" + row.starting_image
-          : null,
-
-        end_km: row.end_km,
-        end_image: row.end_image
-          ? baseURL + "images/" + row.end_image
-          : null,
-
-        transport_charges: row.transport_charges,
-        ticket_image: (row.ticket_image || []).map(
-          (img) => baseURL + "images/" + img
-        ),
-      };
+      if (row.end_km) {
+        map[date].end_sessions.push({
+          end_km: row.end_km,
+          end_image: row.end_image ? baseURL + "images/" + row.end_image : null,
+          transport_charges: row.transport_charges,
+          ticket_image: (row.ticket_image || []).map(img => baseURL + "images/" + img)
+        });
+      }
     });
 
-    res.status(200).json({
-      message: "✔ Sessions fetched successfully",
-      data: finalOutput,
-    });
-  } catch (error) {
-    console.error("Get Sessions Error:", error);
-    res.status(500).json({ error: "Server error while fetching sessions" });
+    res.json({ message: "✔ Sessions fetched", data: Object.values(map) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
 const getSessionsByUserId = async (req, res) => {
   try {
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
-    const session_id= req.params.session_id;
+    const session_id = req.params.session_id;
 
-    const sessionRes = await pool.query(
-      `SELECT * FROM session WHERE id = $1 ORDER BY id DESC`,
+    const result = await pool.query(
+      `
+      SELECT 
+        s.id AS session_id,
+        s.created_at,
+        s.starting_time,
+        s.starting_km,
+        s.starting_image,
+        e.end_time,
+        e.end_km,
+        e.end_image,
+        e.transport_charges,
+        e.ticket_image
+      FROM session s
+      LEFT JOIN end_session e ON s.id = e.session_id
+      WHERE s.id = $1
+      ORDER BY e.id ASC
+      `,
       [session_id]
     );
 
-    if (sessionRes.rows.length === 0) {
-      return res.status(404).json({
-        message: "No sessions found for this user",
-      });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Session not found" });
     }
-    const row= sessionRes.rows[0];
-    let finalOutput = {
-        session_id: row.id,
-        date: row.created_at,
-        starting_time: row.starting_time,
-        starting_km: row.starting_km,
-        starting_image: row.starting_image
-          ? baseURL + "images/" + row.starting_image
-          : null,
 
+    const sessionRow = result.rows[0];
+
+    const finalOutput = {
+      session_id: sessionRow.session_id,
+      date: sessionRow.created_at,
+      starting_time: sessionRow.starting_time,
+      starting_km: sessionRow.starting_km,
+      starting_image: sessionRow.starting_image
+        ? baseURL + "images/" + sessionRow.starting_image
+        : null,
+
+      end_sessions: result.rows.map(row => ({
         end_time: row.end_time,
         end_km: row.end_km,
-        end_image: row.end_image ? baseURL + "images/" + row.end_image : null,
-
+        end_image: row.end_image
+          ? baseURL + "images/" + row.end_image
+          : null,
         transport_charges: row.transport_charges,
         ticket_image: (row.ticket_image || []).map(
-          (img) => baseURL + "images/" + img
+          img => baseURL + "images/" + img
         ),
+      })),
     };
 
-    // -----------------------------
-    // 4️⃣ Send Response
-    // -----------------------------
     res.status(200).json({
-      message: "✔ Sessions fetched successfully",
+      message: "✔ Session fetched successfully",
       data: finalOutput,
     });
   } catch (error) {
     console.error("Get Sessions Error:", error);
-    res.status(500).json({ error: "Server error while fetching sessions" });
+    res.status(500).json({ error: "Server error while fetching session" });
   }
 };
 
 const getAgentSessions = async (req, res) => {
   try {
     const unique_id = req.user.unique_id;
-
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
 
-    // -----------------------------
-    // 1️⃣ Fetch land records + farmer name + status
-    // -----------------------------
     const landRes = await pool.query(
       `
-      SELECT 
-        ll.created_at,
-        ll.status,
-        fd.name AS farmer_name
+      SELECT ll.created_at, ll.status, fd.name AS farmer_name
       FROM land_location ll
       LEFT JOIN farmer_details fd ON fd.land_id = ll.land_id
       WHERE ll.unique_id = $1
@@ -297,163 +267,128 @@ const getAgentSessions = async (req, res) => {
       [unique_id]
     );
 
-    // Build map by date
     const landMap = {};
-    landRes.rows.forEach((row) => {
+    landRes.rows.forEach(row => {
       if (row.created_at) {
         const date = row.created_at.toISOString().split("T")[0];
-
         landMap[date] = {
           farmer_name: row.farmer_name || null,
-          status: row.status === "true", // convert to Boolean
+          status: row.status === "true",
         };
       }
     });
 
-    // -----------------------------
-    // 2️⃣ Fetch sessions
-    // -----------------------------
     const sessionRes = await pool.query(
-      `SELECT * FROM session WHERE unique_id = $1 ORDER BY id DESC`,
+      `
+      SELECT 
+        s.id,
+        s.created_at,
+        s.starting_time,
+        s.starting_km,
+        s.starting_image,
+        e.end_time,
+        e.end_km,
+        e.end_image,
+        e.transport_charges,
+        e.ticket_image
+      FROM session s
+      LEFT JOIN end_session e ON e.session_id = s.id
+      WHERE s.unique_id = $1
+      ORDER BY s.id DESC, e.id ASC
+      `,
       [unique_id]
     );
 
-    if (sessionRes.rows.length === 0) {
-      return res.status(404).json({
-        message: "No sessions found for this user",
-      });
-    }
+    const map = {};
 
-    let finalOutput = {};
+    sessionRes.rows.forEach(row => {
+      const date = row.created_at.toISOString().split("T")[0];
+      const land = landMap[date] || {};
 
-    // -----------------------------
-    // 3️⃣ Build Final Response with status logic
-    // -----------------------------
-    sessionRes.rows.forEach((row) => {
-      const sessionDate = row.created_at
-        ? row.created_at.toISOString().split("T")[0]
-        : null;
+      if (!map[date]) {
+        map[date] = {
+          date,
+          status: land.status || false,
+          farmer_name: land.farmer_name || null,
+          starting_time: row.starting_time,
+          starting_km: row.starting_km,
+          starting_image: row.starting_image
+            ? baseURL + "images/" + row.starting_image
+            : null,
+          end_sessions: []
+        };
+      }
 
-      const landMatch = landMap[sessionDate] || null;
-
-      const status = landMatch && landMatch.status === true ? true : false;
-
-      finalOutput[row.id] = {
-        date: sessionDate,
-        status: status,
-        farmer_name: landMatch ? landMatch.farmer_name : null,
-
-        starting_time: row.starting_time,
-        starting_km: row.starting_km,
-        starting_image: row.starting_image
-          ? baseURL + "images/" + row.starting_image
-          : null,
-
-        end_time: row.end_time,
-        end_km: row.end_km,
-        end_image: row.end_image ? baseURL + "images/" + row.end_image : null,
-
-        transport_charges: row.transport_charges,
-        ticket_image: (row.ticket_image || []).map(
-          (img) => baseURL + "images/" + img
-        ),
-      };
+      if (row.end_km) {
+        map[date].end_sessions.push({
+          end_time: row.end_time,
+          end_km: row.end_km,
+          end_image: row.end_image ? baseURL + "images/" + row.end_image : null,
+          transport_charges: row.transport_charges,
+          ticket_image: (row.ticket_image || []).map(img => baseURL + "images/" + img)
+        });
+      }
     });
 
-    // -----------------------------
-    // 4️⃣ Send Response
-    // -----------------------------
-    res.status(200).json({
-      message: "✔ Sessions fetched successfully",
-      data: finalOutput,
-    });
-  } catch (error) {
-    console.error("Get Sessions Error:", error);
-    res.status(500).json({ error: "Server error while fetching sessions" });
+    res.json({ message: "✔ Sessions fetched", data: Object.values(map) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
 const getMarketingSessions = async (req, res) => {
   const client = await pool.connect();
-
   try {
     const unique_id = req.user.unique_id;
 
-    // 1️⃣ Get all sessions
     const sessionRes = await client.query(
-      `
-      SELECT *
-      FROM session
-      WHERE unique_id = $1
-      ORDER BY created_at DESC
-      `,
+      `SELECT * FROM session WHERE unique_id = $1 ORDER BY created_at DESC`,
       [unique_id]
     );
 
-    const sessions = sessionRes.rows;
     const finalData = [];
 
-    for (const s of sessions) {
-      const sessionDate = s.created_at; // TIMESTAMP
+    for (const s of sessionRes.rows) {
+      const date = s.created_at;
 
-      // 🎯 Poster count
-      const posterRes = await client.query(
-        `
-        SELECT COUNT(*)::int AS count
-        FROM poster_wallet
-        WHERE unique_id = $1
-        AND DATE(date::timestamp) = DATE($2)
-        `,
-        [unique_id, sessionDate]
+      const poster = await client.query(
+        `SELECT COUNT(*)::int FROM poster_wallet WHERE unique_id=$1 AND DATE(date)=DATE($2)`,
+        [unique_id, date]
       );
 
-      // 🎯 Job count
-      const jobRes = await client.query(
-        `
-        SELECT COUNT(*)::int AS count
-        FROM job_post_wallet
-        WHERE unique_id = $1
-        AND DATE(date::timestamp) = DATE($2)
-        `,
-        [unique_id, sessionDate]
+      const job = await client.query(
+        `SELECT COUNT(*)::int FROM job_post_wallet WHERE unique_id=$1 AND DATE(date)=DATE($2)`,
+        [unique_id, date]
       );
 
-      // 🎯 Ads count (date range)
-      const adsRes = await client.query(
+      const ads = await client.query(
         `
-        SELECT COUNT(*)::int AS count
-        FROM our_ads oa
-        JOIN ads_wallet aw ON aw.ads_id::int = oa.id
-        WHERE aw.unique_id = $1
-        AND DATE(date::timestamp) = DATE($2)
+        SELECT COUNT(*)::int 
+        FROM ads_wallet aw
+        WHERE aw.unique_id=$1 AND DATE(date)=DATE($2)
         `,
-        [unique_id, sessionDate]
+        [unique_id, date]
       );
 
       finalData.push({
-        ...s,
-        poster_count: posterRes.rows[0].count,
-        job_count: jobRes.rows[0].count,
-        ads_count: adsRes.rows[0].count,
-
+        session_id: s.id,
+        date,
+        poster_count: poster.rows[0].count,
+        job_count: job.rows[0].count,
+        ads_count: ads.rows[0].count,
         status: {
-          poster: posterRes.rows[0].count > 0,
-          job: jobRes.rows[0].count > 0,
-          ads: adsRes.rows[0].count > 0,
-        },
+          poster: poster.rows[0].count > 0,
+          job: job.rows[0].count > 0,
+          ads: ads.rows[0].count > 0
+        }
       });
     }
 
-    res.status(200).json({
-      success: true,
-      sessions: finalData,
-    });
-  } catch (err) {
-    console.error("Get Marketing Sessions Error:", err);
-    res.status(500).json({
-      success: false,
-      error: "❌ Failed to fetch marketing sessions",
-    });
+    res.json({ success: true, sessions: finalData });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false });
   } finally {
     client.release();
   }

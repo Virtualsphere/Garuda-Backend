@@ -91,14 +91,26 @@ const createTables = async (req, res) => {
         starting_time VARCHAR(200),
         starting_km VARCHAR(200),
         starting_image VARCHAR(200),
-        end_time VARCHAR(200),
-        end_km VARCHAR(200),
-        end_image VARCHAR(100),
-        transport_charges double precision,
-        ticket_image TEXT[],
         created_at DATE DEFAULT CURRENT_DATE
       );
     `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS end_session (
+    id SERIAL PRIMARY KEY,
+    unique_id VARCHAR(255) NOT NULL,
+    session_id INTEGER NOT NULL,
+    end_time VARCHAR(200),
+    end_km VARCHAR(200),
+    end_image VARCHAR(100),
+    transport_charges DOUBLE PRECISION,
+    ticket_image TEXT[],
+    CONSTRAINT fk_end_session_session
+      FOREIGN KEY (session_id)
+      REFERENCES session(id)
+      ON DELETE CASCADE
+    );
+  `);
 };
 
 module.exports= { createTables }

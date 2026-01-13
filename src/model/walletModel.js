@@ -4,12 +4,16 @@ const createWalletTable= async()=>{
     await pool.query(`
     CREATE TABLE IF NOT EXISTS travel_wallet (
       id SERIAL PRIMARY KEY,
-      session_id VARCHAR(255),
+      session_id INTEGER UNIQUE,
       unique_id VARCHAR(255),
       date VARCHAR(255),
       total_km VARCHAR(255),
       amount VARCHAR(255),
-      status VARCHAR(100)
+      status VARCHAR(100),
+      CONSTRAINT fk_travel_wallet_session
+        FOREIGN KEY (session_id)
+        REFERENCES session(id)
+        ON DELETE CASCADE
     );
   `);
 

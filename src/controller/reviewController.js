@@ -47,4 +47,19 @@ const getReview = async (req, res) => {
   }
 };
 
-module.exports= { createReview, getReview }
+const deleteReview = async (req, res) => {
+  try {
+    const { reviewId }= req.params;
+
+    await pool.query(`delete FROM user_review where id= $1`, [reviewId]);
+
+    res.status(200).json({
+      message: '✅ Review deleted successfully',
+    });
+  } catch (error) {
+    console.error('Review Error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports= { createReview, getReview, deleteReview }
