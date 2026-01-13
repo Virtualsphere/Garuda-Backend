@@ -12,7 +12,8 @@ const createUserTable = async () => {
       role VARCHAR(50) DEFAULT 'agent',
       blood_group VARCHAR(50),
       image VARCHAR(100),
-      photo VARCHAR(100)
+      photo VARCHAR(100),
+      jointed_at VARCHAR(100)
     );
   `);
 
@@ -24,7 +25,10 @@ const createUserTable = async () => {
       district VARCHAR(100),
       mandal VARCHAR(100),
       village VARCHAR(100),
-      pincode VARCHAR(100)
+      pincode VARCHAR(100),
+      near_town_1 VARCHAR(255),
+      near_town_2 VARCHAR(255),
+      near_town_3 VARCHAR(255)
     );
   `);
 
@@ -76,6 +80,15 @@ const createUserTable = async () => {
       unique_id VARCHAR(255) UNIQUE NOT NULL,
       vehicle_type VARCHAR(255),
       license_plate VARCHAR(255)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS personal_assignment (
+      id SERIAL PRIMARY KEY,
+      unique_id VARCHAR(255) UNIQUE NOT NULL,
+      report_to VARCHAR(255),
+      assigned_employee VARCHAR(255)
     );
   `);
 };

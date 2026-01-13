@@ -569,6 +569,79 @@ const searchLocation = async (req, res) => {
     }
 };
 
+const deleteState = async (req, res) => {
+    const { stateId } = req.params;
+
+    try {
+        await pool.query('DELETE FROM states WHERE id = $1', [stateId]);
+        res.json({ message: 'State deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete state' });
+    }
+};
+
+const deleteDistrict = async (req, res) => {
+    const { districtId } = req.params;
+
+    try {
+        await pool.query('DELETE FROM districts WHERE id = $1', [districtId]);
+        res.json({ message: 'District deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete district' });
+    }
+};
+
+const deleteMandal = async (req, res) => {
+    const { mandalId } = req.params;
+
+    try {
+        await pool.query('DELETE FROM mandals WHERE id = $1', [mandalId]);
+        res.json({ message: 'Mandal deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete mandal' });
+    }
+};
+
+const deleteSector = async (req, res) => {
+    const { sectorId } = req.params;
+
+    try {
+        await pool.query('DELETE FROM sectors WHERE id = $1', [sectorId]);
+        res.json({ message: 'Sector deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete sector' });
+    }
+};
+
+const deleteTown = async (req, res) => {
+    const { townId } = req.params;
+
+    try {
+        await pool.query('DELETE FROM towns WHERE id = $1', [townId]);
+        res.json({ message: 'Town deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete town' });
+    }
+};
+
+const deleteVillage = async (req, res) => {
+    const { villageId } = req.params;
+
+    try {
+        await pool.query('DELETE FROM villages WHERE id = $1', [villageId]);
+        res.json({ message: 'Village deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete village' });
+    }
+};
+
+
 module.exports = {
     getStates,
     addState,
@@ -599,5 +672,11 @@ module.exports = {
     
     getStateDetails,
     getDistrictDetails,
-    searchLocation
+    searchLocation,
+    deleteState,
+    deleteDistrict,
+    deleteMandal,
+    deleteSector,
+    deleteTown,
+    deleteVillage
 };

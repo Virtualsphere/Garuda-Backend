@@ -7,6 +7,7 @@ const registerController= require("../controller/registerController");
 const marketingController = require("../controller/marketingController");
 const sessionController= require("../controller/sessionController");
 const walletController= require("../controller/baseController");
+const notificationController= require("../controller/notificationController");
 
 router.use(verifyToken);
 
@@ -73,6 +74,8 @@ router.post(
   ]),
   marketingController.createOurAds
 );
+
+router.post("/notification", notificationController.createNotification);
 
 router.get('/poster-sticking', verifyToken, marketingController.getPosterSticking);
 router.get('/job-posting', verifyToken, marketingController.getJobPosting);

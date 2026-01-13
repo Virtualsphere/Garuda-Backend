@@ -7,10 +7,6 @@ const createLandPurchase = async (req, res) => {
     const unique_id = req.user.unique_id;
     const { land_id, land_code, name, phone, description } = req.body;
 
-    if (!land_id || !land_code) {
-      return res.status(400).json({ error: "land_id and land_code are required" });
-    }
-
     const exists = await client.query(
       `SELECT 1 FROM land_purchase_request 
        WHERE land_id = $1 AND unique_id = $2`,

@@ -2,8 +2,8 @@ const pool = require('../db/db');
 const bcrypt = require('bcrypt');
 
 
-const userFields = ["name", "email", "phone", "blood_group"];
-const addressFields = ["state", "district", "mandal", "village", "pincode"];
+const userFields = ["name", "email", "phone", "blood_group", "join_date"];
+const addressFields = ["state", "district", "mandal", "village", "pincode", "near_town_1", "near_town_2", "near_town_3"];
 const aadharFields = ["aadhar_number"];
 const salaryFields = ["package"];
 const bankFields = [
@@ -21,6 +21,16 @@ const workFields = [
   "work_village",
 ];
 const vehicleFields = ["vehicle_type", "license_plate"];
+const personalAssignmentFields = ["report_to", "assigned_employee"];
+
+const cleanData = (obj) => {
+  Object.keys(obj).forEach((key) => {
+    if (obj[key] === undefined || obj[key] === null || obj[key] === "") {
+      delete obj[key];   // remove empty fields so DB keeps old value
+    }
+  });
+  return obj;
+};
 
 const upsert = async (table, uniqueId, data) => {
   const cols = Object.keys(data);
@@ -149,6 +159,15 @@ const updateUserDetails = async (req, res) => {
         req.files.aadhar_back_image[0].filename || null;
     }
 
+    dataUsers = cleanData(dataUsers);
+    dataAddress = cleanData(dataAddress);
+    dataAadhar = cleanData(dataAadhar);
+    dataSalary = cleanData(dataSalary);
+    dataBank = cleanData(dataBank);
+    dataWork = cleanData(dataWork);
+    dataVehicle = cleanData(dataVehicle);
+
+
     // UPSERT for each section
     await upsert("users", uniqueId, dataUsers);
     await upsert("address", uniqueId, dataAddress);
@@ -179,6 +198,7 @@ const updateByAdminUserDetails = async (req, res) => {
     let dataBank = {};
     let dataWork = {};
     let dataVehicle = {};
+    let dataPersonalAssignment= {};
 
     // Assign body fields
     for (let key in body) {
@@ -189,6 +209,7 @@ const updateByAdminUserDetails = async (req, res) => {
       if (bankFields.includes(key)) dataBank[key] = body[key];
       if (workFields.includes(key)) dataWork[key] = body[key];
       if (vehicleFields.includes(key)) dataVehicle[key] = body[key];
+      if (personalAssignmentFields.includes(key)) dataPersonalAssignment[key] = body[key];
     }
 
     // Handle image uploads
@@ -210,6 +231,15 @@ const updateByAdminUserDetails = async (req, res) => {
         req.files.aadhar_back_image[0].filename || null;
     }
 
+    dataUsers = cleanData(dataUsers);
+    dataAddress = cleanData(dataAddress);
+    dataAadhar = cleanData(dataAadhar);
+    dataSalary = cleanData(dataSalary);
+    dataBank = cleanData(dataBank);
+    dataWork = cleanData(dataWork);
+    dataVehicle = cleanData(dataVehicle);
+    dataPersonalAssignment= cleanData(dataPersonalAssignment);
+
     // UPSERT for each section
     await upsert("users", uniqueId, dataUsers);
     await upsert("address", uniqueId, dataAddress);
@@ -218,6 +248,7 @@ const updateByAdminUserDetails = async (req, res) => {
     await upsert("bank_account", uniqueId, dataBank);
     await upsert("work_location", uniqueId, dataWork);
     await upsert("vehicle_information", uniqueId, dataVehicle);
+    await upsert("personal_assignment", uniqueId, dataPersonalAssignment);
 
     res.status(200).json({
       message: "User updated successfully",
@@ -309,13 +340,14 @@ const getAllUserProfile = async (req, res) => {
     }));
 
     // Fetch all related tables
-    const [address, aadhar, salary, bank, work, vehicle] = await Promise.all([
+    const [address, aadhar, salary, bank, work, vehicle, assignment] = await Promise.all([
       pool.query(`SELECT * FROM address`),
       pool.query(`SELECT * FROM aadhar_card`),
       pool.query(`SELECT * FROM salary_package`),
       pool.query(`SELECT * FROM bank_account`),
       pool.query(`SELECT * FROM work_location`),
       pool.query(`SELECT * FROM vehicle_information`),
+      pool.query(`SELECT * FROM personal_assignment`),
     ]);
 
     // Add full image URLs to aadhar table
@@ -339,6 +371,7 @@ const getAllUserProfile = async (req, res) => {
       bank_account: bank.rows,
       work_location: work.rows,
       vehicle_information: vehicle.rows,
+      personal_assignment: assignment.rows,
     });
   } catch (err) {
     console.error("Get User Profile Error:", err);

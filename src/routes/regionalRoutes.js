@@ -7,6 +7,7 @@ const landController= require("../controller/landController");
 const sessionController= require("../controller/sessionController");
 const registerController= require("../controller/registerController");
 const baseController= require("../controller/baseController");
+const notificationController= require("../controller/notificationController");
 
 router.use(verifyToken);
 
@@ -51,5 +52,7 @@ router.get("/land-wallet", baseController.getLandWallet);
 router.get("/land-month-wallet", baseController.getLandMonthWallet);
 
 router.get("/physical/wallet", baseController.getPhysicalWallet);
+
+router.post("/notification", notificationController.createNotification);
 
 module.exports = router;

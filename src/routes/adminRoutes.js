@@ -27,6 +27,8 @@ const reviewController= require("../controller/reviewController");
 
 const bannerController= require("../controller/bannerController");
 
+const notificationController= require("../controller/notificationController");
+
 router.use(verifyToken);
 
 const userDetailsUpdate= upload.fields([
@@ -63,6 +65,9 @@ router.get("/travel/wallet", baseController.getAllTravelWallet);
 router.get("/land/wallet", baseController.getAllLandWallet);
 router.get("/land/wallet/month", baseController.getAllLandMonthWallet);
 router.get("/physical/wallet", baseController.getAllPhysicalWallet);
+router.get("/poster-wallet", baseController.getAllPosterWallet);
+router.get("/job-wallet", baseController.getAllJobPostWallet);
+router.get("/ads-wallet", baseController.getAllAdsWallet);
 
 router.put("/travel/wallet/:id", baseController.updateTravelWallet);
 router.put("/land/wallet/:id", baseController.updateLandWallet);
@@ -106,6 +111,13 @@ router.get('/states/:stateId/details', locationController.getStateDetails);
 router.get('/districts/:districtId/details', locationController.getDistrictDetails);
 router.get('/search', locationController.searchLocation);
 
+router.delete('/state/:stateId', locationController.deleteState);
+router.delete('/district/:districtId', locationController.deleteDistrict);
+router.delete('/sector/:sectorId', locationController.deleteSector);
+router.delete('/mandal/:mandalId', locationController.deleteMandal);
+router.delete('/town/:townId', locationController.deleteTown);
+router.delete('/village/:villageId', locationController.deleteVillage);
+
 router.get('/agents', agentController.getAllAgents);
 router.get('/agents/:agentId', agentController.getAgentById);
 router.post('/agents', agentController.createAgent);
@@ -124,6 +136,7 @@ router.delete('/land-codes/:id', landCodeController.deleteLandCode);
 router.post('/land-codes/bulk-update', landCodeController.bulkUpdateLandCodes);
 
 router.get('/land/data', landController.getLandData);
+router.delete('/land/data/:landId', landController.deleteLandDetails);
 
 router.get('/roles', roleController.getAllRoles);
 router.get('/roles/:roleName', roleController.getRole);
@@ -133,5 +146,8 @@ router.delete('/roles/:roleName', roleController.deleteRole);
 
 router.post('/review', reviewDetail, reviewController.createReview);
 router.post('/banner', bannerDetail, bannerController.createBanner);
+
+router.get('/notification', notificationController.getNotification);
+router.get('/notification', notificationController.updateNotification);
 
 module.exports = router;

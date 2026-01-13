@@ -16,6 +16,7 @@ const { creatLandPurchaseRequestTable }= require('./src/model/landPurchaseReques
 const { marketingTable }= require('./src/model/marketingModel');
 const { createBannerTable }= require('./src/model/bannerModel');
 const { createReviewTable }= require('./src/model/reviewModel');
+const { createNotificationTable }= require('./src/model/notificationModel');
 
 // Import database pool
 const pool = require('./src/db/db'); // Make sure you have this file
@@ -24,12 +25,13 @@ const pool = require('./src/db/db'); // Make sure you have this file
 const registerRoutes = require('./src/routes/registerRoutes');
 const userRoutes= require('./src/routes/userRoutes');
 const authRoutes = require('./src/routes/authRoutes');
-const agentRoutes = require('./src/routes/agentRoutes');
+const fieldExecutiveRoutes = require('./src/routes/fieldExecutiveRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const baseRoutes= require('./src/routes/baseRoutes');
 const regionalRoutes= require('./src/routes/regionalRoutes');
 const roleRoutes= require('./src/routes/permissionRoutes');
 const marketingRoutes= require('./src/routes/marketingRoutes');
+const agentRoutes= require('./src/routes/agentRoutes');
 
 dotenv.config();
 const app = express();
@@ -42,13 +44,14 @@ app.use("/public", express.static(path.join(__dirname, "./src/public")));
 // Routes
 app.use('/api', registerRoutes);
 app.use('/auth', authRoutes);
-app.use('/field-executive', agentRoutes);
+app.use('/field-executive', fieldExecutiveRoutes);
 app.use('/admin', adminRoutes);
 app.use('/regional', regionalRoutes);
 app.use('/location', baseRoutes);
 app.use('/roles', roleRoutes);
 app.use('/user', userRoutes);
 app.use('/marketing', marketingRoutes);
+app.use('/agent', agentRoutes);
 
 // Health check endpoint
 app.get("/", (req, res) => {
@@ -126,6 +129,7 @@ const initializeDatabase = async () => {
     await marketingTable();
     await createBannerTable();
     await createReviewTable();
+    await createNotificationTable();
     
     console.log("✅ Database initialization completed");
   } catch (error) {

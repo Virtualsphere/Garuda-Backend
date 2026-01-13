@@ -366,6 +366,99 @@ const updatePhysicalVerificationWallet= async (req, res)=>{
   }
 }
 
+const getAllPosterWallet = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+        pw.date,
+        u.name,
+        u.role,
+        u.phone,
+        pw.amount,
+        pw.status,
+        pw.id AS poster_wallet_id,
+        lc.state,
+        lc.district,
+        lc.town,
+        lc.mandal
+       FROM poster_wallet pw
+       LEFT JOIN users u ON u.unique_id = pw.unique_id
+       LEFT JOIN poster_location lc ON lc.unique_id = pw.unique_id
+       ORDER BY pw.date DESC`
+    );
+
+    res.status(200).json({
+      message: "Poster wallet records fetched successfully",
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error("Get Poster Wallet Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const getAllJobPostWallet = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+        jpw.date,
+        u.name,
+        u.role,
+        u.phone,
+        jpw.amount,
+        jpw.status,
+        jpw.id AS job_post_wallet_id,
+        lc.state,
+        lc.district,
+        lc.town,
+        lc.mandal
+       FROM job_post_wallet jpw
+       LEFT JOIN users u ON u.unique_id = jpw.unique_id
+       LEFT JOIN job_location lc ON lc.unique_id = jpw.unique_id
+       ORDER BY jpw.date DESC`
+    );
+
+    res.status(200).json({
+      message: "Job post wallet records fetched successfully",
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error("Get Job Post Wallet Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const getAllAdsWallet = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+        aw.date,
+        u.name,
+        u.role,
+        u.phone,
+        aw.amount,
+        aw.status,
+        aw.id AS ads_wallet_id,
+        lc.state,
+        lc.district,
+        lc.town,
+        lc.mandal
+       FROM ads_wallet aw
+       LEFT JOIN users u ON u.unique_id = aw.unique_id
+       LEFT JOIN our_ads lc ON lc.unique_id = aw.unique_id
+       ORDER BY aw.date DESC`
+    );
+
+    res.status(200).json({
+      message: "Ads wallet records fetched successfully",
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error("Get Ads Wallet Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 module.exports= {
     getTravelWallet,
     getLandWallet,
@@ -381,5 +474,8 @@ module.exports= {
     updatePhysicalVerificationWallet,
     getAdsWallet,
     getJobPostWallet,
-    getPosterWallet
+    getPosterWallet,
+    getAllPosterWallet,
+    getAllJobPostWallet,
+    getAllAdsWallet
 }

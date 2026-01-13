@@ -1486,7 +1486,45 @@ const getVerifiedLandDetailsById = async (req, res) => {
   }
 };
 
-// const deleteLandDetails = async (req, res) => {}
+const deleteLandDetails = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { landId } = req.params;
+
+    if (!landId) {
+      return res.status(400).json({ error: "land_id is required" });
+    }
+
+    await client.query("BEGIN");
+
+    // Delete from child tables first
+    await client.query(`DELETE FROM land_wallet WHERE land_id = $1`, [landId]);
+    await client.query(`DELETE FROM land_month_wallet WHERE land_id = $1`, [landId]);
+    await client.query(`DELETE FROM document_media WHERE land_id = $1`, [landId]);
+    await client.query(`DELETE FROM dispute_details WHERE land_id = $1`, [landId]);
+    await client.query(`DELETE FROM gps_tracking WHERE land_id = $1`, [landId]);
+    await client.query(`DELETE FROM land_details WHERE land_id = $1`, [landId]);
+    await client.query(`DELETE FROM farmer_details WHERE land_id = $1`, [landId]);
+
+    // Finally delete main land record
+    await client.query(`DELETE FROM land_location WHERE land_id = $1`, [landId]);
+
+    await client.query("COMMIT");
+
+    res.status(200).json({
+      message: "✅ Land deleted successfully",
+      landId,
+    });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Delete Land Error:", err);
+    res.status(500).json({ error: "❌ Failed to delete land" });
+  } finally {
+    client.release();
+  }
+};
 
 module.exports= {
     getAllUniverfiedLandFullDetails,
@@ -1499,5 +1537,6 @@ module.exports= {
     getLandData,
     getAllFullLandFullDetails,
     getAllVerfiedLandFullDetails,
-    getVerifiedLandDetailsById
+    getVerifiedLandDetailsById,
+    deleteLandDetails
 }

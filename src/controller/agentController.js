@@ -427,8 +427,9 @@ const deleteAgent = async (req, res) => {
 
     // Soft delete - update status to inactive
     const result = await pool.query(
-      `UPDATE agents SET status = 'inactive', updated_at = CURRENT_TIMESTAMP 
-       WHERE agent_id = $1 RETURNING *`,
+      `DELETE FROM agents 
+       WHERE agent_id = $1 
+       RETURNING *`,
       [agentId]
     );
 
@@ -437,7 +438,7 @@ const deleteAgent = async (req, res) => {
     }
 
     res.status(200).json({
-      message: "Agent deactivated successfully",
+      message: "Agent deleted successfully",
       data: result.rows[0]
     });
   } catch (error) {
