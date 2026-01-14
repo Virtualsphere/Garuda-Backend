@@ -21,7 +21,8 @@ const landUpload = upload.fields([
   { name: "passbook_photo", maxCount: 1 },
   { name: "land_border", maxCount: 1 },
   { name: "land_photo" },
-  { name: "land_video" }
+  { name: "land_video" },
+  { name: "border_photo" }
 ]);
 
 router.post("/land", landUpload, landController.createFullLandEntry);

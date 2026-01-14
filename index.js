@@ -17,9 +17,10 @@ const { marketingTable }= require('./src/model/marketingModel');
 const { createBannerTable }= require('./src/model/bannerModel');
 const { createReviewTable }= require('./src/model/reviewModel');
 const { createNotificationTable }= require('./src/model/notificationModel');
+const { createOfficeWorkTable }= require('./src/model/officeWorkModel');
 
 // Import database pool
-const pool = require('./src/db/db'); // Make sure you have this file
+const pool = require('./src/db/db');
 
 // Import routes
 const registerRoutes = require('./src/routes/registerRoutes');
@@ -130,6 +131,7 @@ const initializeDatabase = async () => {
     await createBannerTable();
     await createReviewTable();
     await createNotificationTable();
+    await createOfficeWorkTable();
     
     console.log("✅ Database initialization completed");
   } catch (error) {

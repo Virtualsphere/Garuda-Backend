@@ -29,8 +29,8 @@ const createNotification = async (req, res) => {
 
 const updateNotification = async (req, res) => {
   try {
-    const { id } = req.params;       // notification id from URL
-    const { status } = req.body;     // new status from body
+    const { id } = req.params;
+    const { status } = req.body;
 
     const result = await pool.query(
       `UPDATE notification 

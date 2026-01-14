@@ -50,10 +50,12 @@ const landUpload = upload.fields([
   { name: "passbook_photo", maxCount: 1 },
   { name: "land_border", maxCount: 1 },
   { name: "land_photo" },
-  { name: "land_video" }
+  { name: "land_video" },
+  { name: "border_photo" }
 ]);
 
 router.get("/personal/details", registerController.getAllUserProfile);
+router.post('/land', landUpload, landController.createFullLandEntry);
 router.get('/land', landController.getAllFullLandFullDetails);
 router.put("/personal/details", userDetailsUpdate, registerController.updateByAdminUserDetails);
 router.put("/land/:land_id", landUpload, landController.updateVerficationLandWithPhysicalVerificationDetails);
@@ -151,6 +153,6 @@ router.post('/banner', bannerDetail, bannerController.createBanner);
 router.get('/banner', bannerDetail, bannerController.getBanner);
 
 router.get('/notification', notificationController.getNotification);
-router.get('/notification', notificationController.updateNotification);
+router.put('/notification/:id', notificationController.updateNotification);
 
 module.exports = router;

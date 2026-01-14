@@ -1,4 +1,5 @@
 const pool = require("../db/db");
+const polyline = require('@mapbox/polyline');
 
 const toJsonArray = (value) => {
   if (!value) return JSON.stringify([]);
@@ -87,6 +88,21 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
   addField("dispute_details", "siblings_involve_in_dispute", body.siblings_involve_in_dispute);
   addField("dispute_details", "path_to_land", body.path_to_land);
 
+    // office_work
+  addField("office_work", "suggested_farmer_name", body.suggested_farmer_name);
+  addField("office_work", "suggested_farmer_phone", body.suggested_farmer_phone);
+  addField("office_work", "suggested_village", body.suggested_village);
+  addField("office_work", "suggested_mandal", body.suggested_mandal);
+  addField("office_work", "keep_in_special_package", body.keep_in_special_package);
+  addField("office_work", "package_name", body.package_name);
+  addField("office_work", "package_remarks", body.package_remarks);
+  addField("office_work", "mediator_id", body.mediator_id);
+  addField("office_work", "certification_willingness", body.certification_willingness);
+  addField("office_work", "certification_location", body.certification_location);
+  addField("office_work", "board_start_date", body.board_start_date);
+  addField("office_work", "board_end_date", body.board_end_date);
+  addField("office_work", "border_latitude", body.border_latitude);
+  addField("office_work", "border_longitude", body.border_longitude);
   return updates;
 }
 
@@ -137,6 +153,22 @@ const createFullLandEntry = async (req, res) => {
       dispute_type,
       siblings_involve_in_dispute,
       path_to_land,
+
+      suggested_farmer_name,
+      suggested_farmer_phone,
+      suggested_village,
+      suggested_mandal,
+      keep_in_special_package,
+      package_name,
+      package_remarks,
+      mediator_id,
+      certification_willingness,
+      certification_location,
+      board_start_date,
+      board_end_date,
+      border_latitude,
+      border_longitude,
+      visitors
     } = req.body;
 
     const unique_id = req.user.unique_id;
@@ -147,6 +179,15 @@ const createFullLandEntry = async (req, res) => {
 
     const landPhoto = req.files?.land_photo?.map((f) => f.filename) || [];
     const landVideo = req.files?.land_video?.map((f) => f.filename) || [];
+    const borderPhoto = req.files?.border_photo?.map((f) => f.filename) || [];
+
+    let encodedRoadPath= null;
+
+    if (req.body.road_path) {
+      const roadCoordinates = JSON.parse(req.body.road_path);
+      const points = roadCoordinates.map(p => [p.latitude, p.longitude]);
+      encodedRoadPath = polyline.encode(points);
+    }
 
     const waterSourceJson = toJsonArray(water_source);
     const gardenJson = toJsonArray(garden);
@@ -160,9 +201,6 @@ const createFullLandEntry = async (req, res) => {
 
     const land_id = `LAND-${idRes.rows[0].id}`;
 
-    // ------------------------------
-    // 1️⃣ Insert land_location
-    // ------------------------------
     const landRes = await client.query(
       `INSERT INTO land_location 
        (land_id, unique_id, state, district, mandal, village, location, status)
@@ -171,9 +209,6 @@ const createFullLandEntry = async (req, res) => {
       [land_id, unique_id, state, district, mandal, village, location, status]
     );
 
-    // ------------------------------
-    // 2️⃣ Insert farmer_details
-    // ------------------------------
     await client.query(
       `INSERT INTO farmer_details 
        (land_id, name, phone, whatsapp_number, literacy, age_group,
@@ -192,9 +227,6 @@ const createFullLandEntry = async (req, res) => {
       ]
     );
 
-    // ------------------------------
-    // 3️⃣ Insert land_details
-    // ------------------------------
     await client.query(
       `INSERT INTO land_details 
        (land_id, land_area, guntas, price_per_acre, total_land_price, 
@@ -218,19 +250,13 @@ const createFullLandEntry = async (req, res) => {
       ]
     );
 
-    // ------------------------------
-    // 4️⃣ Insert gps_tracking
-    // ------------------------------
     await client.query(
       `INSERT INTO gps_tracking 
        (land_id, road_path, latitude, longitude, land_border)
        VALUES ($1,$2,$3,$4,$5);`,
-      [land_id, road_path, latitude, longitude, landBorder]
+      [land_id, encodedRoadPath, latitude, longitude, landBorder]
     );
 
-    // ------------------------------
-    // 5️⃣ Insert dispute_details
-    // ------------------------------
     await client.query(
       `INSERT INTO dispute_details 
        (land_id, dispute_type, siblings_involve_in_dispute, path_to_land)
@@ -238,9 +264,6 @@ const createFullLandEntry = async (req, res) => {
       [land_id, dispute_type, siblings_involve_in_dispute, path_to_land]
     );
 
-    // ------------------------------
-    // 6️⃣ Insert document_media
-    // ------------------------------
     await client.query(
       `INSERT INTO document_media 
        (land_id, land_photo, land_video)
@@ -261,6 +284,49 @@ const createFullLandEntry = async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6);`,
       [land_id, unique_id, "pending", new Date(), 0, "pending"]
     );
+
+    const officeRes = await client.query(
+      `INSERT INTO office_work 
+      (land_id, suggested_farmer_name, suggested_farmer_phone, suggested_village, suggested_mandal,
+        keep_in_special_package, package_name, package_remarks, mediator_id,
+        certification_willingness, certification_location, board_start_date, board_end_date,
+        border_latitude, border_longitude, border_photo)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      RETURNING id`,
+      [
+        land_id,
+        suggested_farmer_name,
+        suggested_farmer_phone,
+        suggested_village,
+        suggested_mandal,
+        keep_in_special_package,
+        package_name,
+        package_remarks,
+        mediator_id,
+        certification_willingness,
+        certification_location,
+        board_start_date,
+        board_end_date,
+        border_latitude,
+        border_longitude,
+        borderPhoto
+      ]
+    );
+
+    const office_work_id = officeRes.rows[0].id;
+
+    console.log(visitors);
+
+    if (Array.isArray(visitors)) {
+      for (const v of visitors) {
+        await client.query(
+          `INSERT INTO office_work_visitors
+          (office_work_id, visit_date, visitor_name, visitor_phone, visitor_status)
+          VALUES ($1,$2,$3,$4,$5)`,
+          [office_work_id, v.date, v.name, v.phone, v.status]
+        );
+      }
+    }
 
     await client.query("COMMIT");
 
@@ -768,6 +834,11 @@ const updateLandDetails = async (req, res) => {
       updates.document_media.land_photo = req.files.land_photo.map(f => f.filename);
     }
 
+    if (req.files?.border_photo) {
+      updates.office_work = updates.office_work || {};
+      updates.office_work.border_photo = req.files.border_photo.map(f => f.filename);
+    }
+
     if (req.files?.land_video) {
       updates.document_media = updates.document_media || {};
       updates.document_media.land_video = req.files.land_video.map(f => f.filename);
@@ -781,6 +852,7 @@ const updateLandDetails = async (req, res) => {
       gps_tracking: { table: "gps_tracking", key: "land_id" },
       dispute_details: { table: "dispute_details", key: "land_id" },
       document_media: { table: "document_media", key: "land_id" },
+      office_work: { table: "office_work", key: "land_id" }
     };
 
     // Update each table
@@ -827,6 +899,32 @@ const updateLandDetails = async (req, res) => {
       WHERE land_id = $1`,
       [land_id]
     );
+
+    if (Array.isArray(req.body.visitors)) {
+      const officeRes = await client.query(
+        `SELECT id FROM office_work WHERE land_id = $1`,
+        [land_id]
+      );
+
+      if (officeRes.rowCount) {
+        const office_work_id = officeRes.rows[0].id;
+
+        await client.query(
+          `DELETE FROM office_work_visitors WHERE office_work_id = $1`,
+          [office_work_id]
+        );
+
+        for (const v of req.body.visitors) {
+          await client.query(
+            `INSERT INTO office_work_visitors
+            (office_work_id, visit_date, visitor_name, visitor_phone, visitor_status)
+            VALUES ($1,$2,$3,$4,$5)`,
+            [office_work_id, v.date, v.name, v.phone, v.status]
+          );
+        }
+      }
+    }
+
 
     await client.query("COMMIT");
 
@@ -1097,21 +1195,12 @@ const getAllFullLandFullDetails = async (req, res) => {
   try {
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
 
-    // Extract filters
-    const {
-      district,
-      state,
-      price_per_acres,
-      total_land_price,
-      land_area,
-    } = req.query;
+    const { district, state, price_per_acres, total_land_price, land_area } = req.query;
 
-    // Dynamic conditions
     let conditions = [`l.status = $1`];
     let values = ["true"];
     let index = 2;
 
-    // Text filters (LIKE search)
     if (district) {
       conditions.push(`l.district ILIKE $${index++}`);
       values.push(`%${district}%`);
@@ -1120,8 +1209,6 @@ const getAllFullLandFullDetails = async (req, res) => {
       conditions.push(`l.state ILIKE $${index++}`);
       values.push(`%${state}%`);
     }
-
-    // Numeric filters (<= search)
     if (price_per_acres) {
       conditions.push(`ld.price_per_acre <= $${index++}`);
       values.push(price_per_acres);
@@ -1135,35 +1222,54 @@ const getAllFullLandFullDetails = async (req, res) => {
       values.push(land_area);
     }
 
-    // Build final SQL query
     const query = `
+      SELECT 
+  l.*,
+  f.*,
+  ld.*,
+  gps.*,
+  d.*,
+  dm.*,
+  ow.*,
+
+  u.unique_id AS user_unique_id,
+  u.name AS user_name,
+  u.role AS user_role,
+
+  mu.unique_id AS mediator_unique_id,
+  mu.name AS mediator_name,
+
+  COALESCE(vs.visitors, '[]') AS visitors
+
+FROM land_location l
+LEFT JOIN farmer_details f ON l.land_id = f.land_id
+LEFT JOIN land_details ld ON l.land_id = ld.land_id
+LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
+LEFT JOIN dispute_details d ON l.land_id = d.land_id
+LEFT JOIN document_media dm ON l.land_id = dm.land_id
+LEFT JOIN office_work ow ON l.land_id = ow.land_id
+LEFT JOIN users u ON l.unique_id = u.unique_id
+LEFT JOIN users mu ON ow.mediator_id = mu.unique_id
+
+LEFT JOIN (
   SELECT 
-    l.*,
-    f.*,
-    ld.*,
-    gps.*,
-    d.*,
-    dm.*,
+    office_work_id,
+    json_agg(
+      jsonb_build_object(
+        'id', id,
+        'visit_date', visit_date,
+        'visitor_name', visitor_name,
+        'visitor_phone', visitor_phone,
+        'visitor_status', visitor_status
+      ) ORDER BY visit_date
+    ) AS visitors
+  FROM office_work_visitors
+  GROUP BY office_work_id
+) vs ON ow.id = vs.office_work_id
 
-    -- user info
-    u.unique_id AS user_unique_id,
-    u.name AS user_name,
-    u.email AS user_email,
-    u.phone AS user_phone,
-    u.role AS user_role,
-    u.image AS user_image
-
-  FROM land_location l
-  LEFT JOIN farmer_details f ON l.land_id = f.land_id
-  LEFT JOIN land_details ld ON l.land_id = ld.land_id
-  LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
-  LEFT JOIN dispute_details d ON l.land_id = d.land_id
-  LEFT JOIN document_media dm ON l.land_id = dm.land_id
-  LEFT JOIN users u ON l.unique_id = u.unique_id
-
-  WHERE ${conditions.join(" AND ")}
-  ORDER BY l.created_at DESC;
-`;
+WHERE ${conditions.join(" AND ")}
+ORDER BY l.created_at DESC;
+    `;
 
     const result = await pool.query(query, values);
 
@@ -1171,13 +1277,12 @@ const getAllFullLandFullDetails = async (req, res) => {
       return res.status(404).json({ message: "No land records found" });
     }
 
-    // Build response format
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
 
       user_detail: {
         user_name: row.user_name,
-        user_role: row.user_role
+        user_role: row.user_role,
       },
 
       land_location: {
@@ -1206,9 +1311,7 @@ const getAllFullLandFullDetails = async (req, res) => {
         guntas: row.guntas,
         price_per_acre: row.price_per_acre,
         total_land_price: row.total_land_price,
-        passbook_photo: row.passbook_photo
-          ? baseURL + "images/" + row.passbook_photo
-          : null,
+        passbook_photo: row.passbook_photo ? baseURL + "images/" + row.passbook_photo : null,
         land_type: row.land_type,
         water_source: row.water_source,
         garden: row.garden,
@@ -1222,9 +1325,7 @@ const getAllFullLandFullDetails = async (req, res) => {
         road_path: row.road_path,
         latitude: row.latitude,
         longitude: row.longitude,
-        land_border: row.land_border
-          ? baseURL + "images/" + row.land_border
-          : null,
+        land_border: row.land_border ? baseURL + "images/" + row.land_border : null,
       },
 
       dispute_details: {
@@ -1234,9 +1335,31 @@ const getAllFullLandFullDetails = async (req, res) => {
       },
 
       document_media: {
-        land_photo: (row.land_photo || []).map((p) => baseURL + "images/" + p),
-        land_video: (row.land_video || []).map((v) => baseURL + "videos/" + v),
+        land_photo: (row.land_photo || []).map(p => baseURL + "images/" + p),
+        land_video: (row.land_video || []).map(v => baseURL + "videos/" + v),
       },
+
+      office_work: {
+        suggested_farmer_name: row.suggested_farmer_name,
+        suggested_farmer_phone: row.suggested_farmer_phone,
+        suggested_village: row.suggested_village,
+        suggested_mandal: row.suggested_mandal,
+        keep_in_special_package: row.keep_in_special_package,
+        package_name: row.package_name,
+        package_remarks: row.package_remarks,
+        mediator: {
+          mediator_id: row.mediator_id,
+          name: row.mediator_name,
+        },
+        certification_willingness: row.certification_willingness,
+        certification_location: row.certification_location,
+        board_start_date: row.board_start_date,
+        board_end_date: row.board_end_date,
+        border_latitude: row.border_latitude,
+        border_longitude: row.border_longitude,
+        border_photo: (row.border_photo || []).map(p => baseURL + "images/" + p),
+        visitors: row.visitors
+      }
     }));
 
     return res.status(200).json({
@@ -1245,6 +1368,7 @@ const getAllFullLandFullDetails = async (req, res) => {
       count: response.length,
       data: response,
     });
+
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to fetch land details" });

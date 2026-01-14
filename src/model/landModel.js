@@ -58,7 +58,7 @@ const createTables = async (req, res) => {
       CREATE TABLE IF NOT EXISTS gps_tracking (
         id SERIAL PRIMARY KEY,
         land_id VARCHAR(255) NOT NULL,
-        road_path VARCHAR(100),
+        road_path TEXT,
         latitude TEXT,
         longitude TEXT,
         land_border VARCHAR(100)
