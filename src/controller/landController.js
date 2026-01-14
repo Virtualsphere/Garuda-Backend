@@ -315,10 +315,20 @@ const createFullLandEntry = async (req, res) => {
 
     const office_work_id = officeRes.rows[0].id;
 
-    console.log(visitors);
+    let parsedVisitors = [];
 
-    if (Array.isArray(visitors)) {
-      for (const v of visitors) {
+    if (visitors) {
+      try {
+        parsedVisitors = typeof visitors === "string" ? JSON.parse(visitors) : visitors;
+      } catch (e) {
+        console.error("Invalid visitors JSON", e);
+      }
+    }
+
+    console.log(parsedVisitors);
+
+    if (Array.isArray(parsedVisitors)) {
+      for (const v of parsedVisitors) {
         await client.query(
           `INSERT INTO office_work_visitors
           (office_work_id, visit_date, visitor_name, visitor_phone, visitor_status)
@@ -900,7 +910,17 @@ const updateLandDetails = async (req, res) => {
       [land_id]
     );
 
-    if (Array.isArray(req.body.visitors)) {
+    let parsedVisitors = [];
+
+    if (req.body.visitors) {
+      try {
+        parsedVisitors = typeof req.body.visitors === "string" ? JSON.parse(req.body.visitors) : req.body.visitors;
+      } catch (e) {
+        console.error("Invalid visitors JSON", e);
+      }
+    }
+
+    if (Array.isArray(parsedVisitors)) {
       const officeRes = await client.query(
         `SELECT id FROM office_work WHERE land_id = $1`,
         [land_id]
@@ -914,7 +934,7 @@ const updateLandDetails = async (req, res) => {
           [office_work_id]
         );
 
-        for (const v of req.body.visitors) {
+        for (const v of parsedVisitors) {
           await client.query(
             `INSERT INTO office_work_visitors
             (office_work_id, visit_date, visitor_name, visitor_phone, visitor_status)
