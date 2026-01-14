@@ -1650,6 +1650,7 @@ const deleteLandDetails = async (req, res) => {
     await client.query(`DELETE FROM gps_tracking WHERE land_id = $1`, [landId]);
     await client.query(`DELETE FROM land_details WHERE land_id = $1`, [landId]);
     await client.query(`DELETE FROM farmer_details WHERE land_id = $1`, [landId]);
+    await client.query(`DELETE FROM office_work WHERE land_id= $1 CASCADE`, [landId]);
 
     // Finally delete main land record
     await client.query(`DELETE FROM land_location WHERE land_id = $1`, [landId]);
