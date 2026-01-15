@@ -183,7 +183,7 @@ const createFullLandEntry = async (req, res) => {
 
     let encodedRoadPath= null;
 
-    if (req.body.road_path) {
+    if (road_path) {
       const roadCoordinates = JSON.parse(req.body.road_path);
       const points = roadCoordinates.map(p => [p.latitude, p.longitude]);
       encodedRoadPath = polyline.encode(points);
