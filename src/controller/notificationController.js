@@ -2,16 +2,15 @@ const pool = require("../db/db");
 
 const createNotification = async (req, res) => {
   try {
-    const { description }= req.body;
-    const uniqueId= req.user.unique_id;
+    const { description, email, phone, role }= req.body;
 
     const status= "pending";
 
     const result = await pool.query(
-      `INSERT INTO notification (unique_id,  description, status)
-       VALUES ($1, $2, $3)
+      `INSERT INTO notification (description, status, email, phone_number, role)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *;`,
-      [uniqueId, description, status]
+      [description, status, email, phone, role]
     );
 
     const newNotification = result.rows[0];

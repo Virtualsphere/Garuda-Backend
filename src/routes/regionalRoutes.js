@@ -54,6 +54,4 @@ router.get("/land-month-wallet", baseController.getLandMonthWallet);
 
 router.get("/physical/wallet", baseController.getPhysicalWallet);
 
-router.post("/notification", notificationController.createNotification);
-
 module.exports = router;

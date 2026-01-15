@@ -13,8 +13,6 @@ const baseController= require("../controller/baseController");
 
 const sessionController= require("../controller/sessionController");
 
-const notificationController= require("../controller/notificationController");
-
 router.use(verifyToken);
 
 const landUpload = upload.fields([
@@ -56,7 +54,5 @@ router.put("/personal/details", agentDetailsUpdate, registerController.updateUse
 router.get("/travel-wallet", baseController.getTravelWallet);
 router.get("/land-wallet", baseController.getLandWallet);
 router.get("/land-month-wallet", baseController.getLandMonthWallet);
-
-router.post("/notification", notificationController.createNotification);
 
 module.exports = router;

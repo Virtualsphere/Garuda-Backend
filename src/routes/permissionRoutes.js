@@ -7,4 +7,6 @@ router.get('/my-permissions', verifyToken, roleController.getUserPermissions);
 
 router.get('/my-role', verifyToken, roleController.getMyRole);
 
+router.get('/', roleController.getAllRoles);
+
 module.exports = router;

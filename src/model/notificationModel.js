@@ -4,8 +4,10 @@ const createNotificationTable = async () => {
     await pool.query(`
     CREATE TABLE IF NOT EXISTS notification (
       id SERIAL PRIMARY KEY,
-      unique_id VARCHAR(255),
       description TEXT,
+      email VARCHAR(255),
+      phone_number VARCHAR(15),
+      role VARCHAR(50),
       status VARCHAR(20),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

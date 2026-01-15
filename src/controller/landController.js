@@ -380,7 +380,7 @@ const getAllUniverfiedLandFullDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -482,7 +482,7 @@ const getAllRejectedLandFullDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -725,7 +725,7 @@ const getAllLandFullDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -983,7 +983,7 @@ const getAllLandFullDraftDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -1289,7 +1289,7 @@ ORDER BY l.created_at DESC;
     const result = await pool.query(query, values);
 
     if (!result.rows.length) {
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
     }
 
     const response = result.rows.map((row) => ({
@@ -1433,7 +1433,7 @@ const getAllVerfiedLandFullDetails = async (req, res) => {
     const result = await pool.query(query, values);
 
     if (!result.rows.length) {
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
     }
 
     const response = result.rows.map((row) => ({
