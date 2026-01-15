@@ -614,40 +614,35 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
 
     // Update each table
     for (const key in updates) {
-      const { table, key: idColumn } = tables[key];
-      if (!table) continue;
+  if (!tables[key]) continue;   // ✅ first check mapping exists
 
-      const fields = updates[key];
-      const columns = Object.keys(fields);
-      const values = Object.values(fields);
+  const { table, key: idColumn } = tables[key];
 
-      if (!columns.length) continue;
+  const fields = updates[key];
+  const columns = Object.keys(fields);
+  const values = Object.values(fields);
 
-      let setClause;
-      if (key === "document_media") {
-        setClause = columns
-          .map((col, i) => `${col} = $${i + 2}::text[]`)
-          .join(", ");
+  if (!columns.length) continue;
+
+  let setClause;
+  if (key === "document_media") {
+    setClause = columns.map((col, i) => `${col} = $${i + 2}::text[]`).join(", ");
+  } else if (key === "land_details") {
+    setClause = columns.map((col, i) => {
+      if (["water_source", "garden", "shed_details"].includes(col)) {
+        return `${col} = $${i + 2}::jsonb`;
       }
-      else if (key === "land_details") {
-        setClause = columns
-          .map((col, i) => {
-            if (["water_source", "garden", "shed_details"].includes(col)) {
-              return `${col} = $${i + 2}::jsonb`;
-            }
-            return `${col} = $${i + 2}`;
-          })
-          .join(", ");
-      } 
-      else {
-        setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
-      }
+      return `${col} = $${i + 2}`;
+    }).join(", ");
+  } else {
+    setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
+  }
 
-      await client.query(
-        `UPDATE ${table} SET ${setClause} WHERE ${idColumn} = $1`,
-        [land_id, ...values]
-      );
-    }
+  await client.query(
+    `UPDATE ${table} SET ${setClause} WHERE ${idColumn} = $1`,
+    [land_id, ...values]
+  );
+}
 
     // NEW: store verification admin & date + create wallet entry IF NOT EXISTS
     if (updates.land_location.verification === "verified") {
@@ -867,8 +862,8 @@ const updateLandDetails = async (req, res) => {
 
     // Update each table
     for (const key in updates) {
-      const { table, key: idColumn } = tables[key];
       if (!table) continue;
+      const { table, key: idColumn } = tables[key];
 
       const fields = updates[key];
       const columns = Object.keys(fields);
