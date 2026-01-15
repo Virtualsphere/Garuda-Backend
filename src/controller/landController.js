@@ -380,7 +380,7 @@ const getAllUniverfiedLandFullDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(200).json({ message: "No land records found" });
+      return res.status(404).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -482,7 +482,7 @@ const getAllRejectedLandFullDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(200).json({ message: "No land records found" });
+      return res.status(404).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -614,35 +614,40 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
 
     // Update each table
     for (const key in updates) {
-  if (!tables[key]) continue;   // ✅ first check mapping exists
+      const { table, key: idColumn } = tables[key];
+      if (!table) continue;
 
-  const { table, key: idColumn } = tables[key];
+      const fields = updates[key];
+      const columns = Object.keys(fields);
+      const values = Object.values(fields);
 
-  const fields = updates[key];
-  const columns = Object.keys(fields);
-  const values = Object.values(fields);
+      if (!columns.length) continue;
 
-  if (!columns.length) continue;
-
-  let setClause;
-  if (key === "document_media") {
-    setClause = columns.map((col, i) => `${col} = $${i + 2}::text[]`).join(", ");
-  } else if (key === "land_details") {
-    setClause = columns.map((col, i) => {
-      if (["water_source", "garden", "shed_details"].includes(col)) {
-        return `${col} = $${i + 2}::jsonb`;
+      let setClause;
+      if (key === "document_media") {
+        setClause = columns
+          .map((col, i) => `${col} = $${i + 2}::text[]`)
+          .join(", ");
       }
-      return `${col} = $${i + 2}`;
-    }).join(", ");
-  } else {
-    setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
-  }
+      else if (key === "land_details") {
+        setClause = columns
+          .map((col, i) => {
+            if (["water_source", "garden", "shed_details"].includes(col)) {
+              return `${col} = $${i + 2}::jsonb`;
+            }
+            return `${col} = $${i + 2}`;
+          })
+          .join(", ");
+      } 
+      else {
+        setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
+      }
 
-  await client.query(
-    `UPDATE ${table} SET ${setClause} WHERE ${idColumn} = $1`,
-    [land_id, ...values]
-  );
-}
+      await client.query(
+        `UPDATE ${table} SET ${setClause} WHERE ${idColumn} = $1`,
+        [land_id, ...values]
+      );
+    }
 
     // NEW: store verification admin & date + create wallet entry IF NOT EXISTS
     if (updates.land_location.verification === "verified") {
@@ -725,7 +730,7 @@ const getAllLandFullDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(200).json({ message: "No land records found" });
+      return res.status(404).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -862,7 +867,8 @@ const updateLandDetails = async (req, res) => {
 
     // Update each table
     for (const key in updates) {
-      if (!table) continue;
+      if (!tables[key]) continue;   // ✅ first check mapping exists
+
       const { table, key: idColumn } = tables[key];
 
       const fields = updates[key];
@@ -871,24 +877,17 @@ const updateLandDetails = async (req, res) => {
 
       if (!columns.length) continue;
 
-      // Special case: document_media columns that are arrays must be cast to text[]
       let setClause;
       if (key === "document_media") {
-        setClause = columns
-          .map((col, i) => `${col} = $${i + 2}::text[]`)
-          .join(", ");
-      }
-      else if (key === "land_details") {
-        setClause = columns
-          .map((col, i) => {
-            if (["water_source", "garden", "shed_details"].includes(col)) {
-              return `${col} = $${i + 2}::jsonb`;
-            }
-            return `${col} = $${i + 2}`;
-          })
-          .join(", ");
-      }
-      else {
+        setClause = columns.map((col, i) => `${col} = $${i + 2}::text[]`).join(", ");
+      } else if (key === "land_details") {
+        setClause = columns.map((col, i) => {
+          if (["water_source", "garden", "shed_details"].includes(col)) {
+            return `${col} = $${i + 2}::jsonb`;
+          }
+          return `${col} = $${i + 2}`;
+        }).join(", ");
+      } else {
         setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
       }
 
@@ -983,7 +982,7 @@ const getAllLandFullDraftDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(200).json({ message: "No land records found" });
+      return res.status(404).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -1289,7 +1288,7 @@ ORDER BY l.created_at DESC;
     const result = await pool.query(query, values);
 
     if (!result.rows.length) {
-      return res.status(200).json({ message: "No land records found" });
+      return res.status(404).json({ message: "No land records found" });
     }
 
     const response = result.rows.map((row) => ({
@@ -1433,7 +1432,7 @@ const getAllVerfiedLandFullDetails = async (req, res) => {
     const result = await pool.query(query, values);
 
     if (!result.rows.length) {
-      return res.status(200).json({ message: "No land records found" });
+      return res.status(404).json({ message: "No land records found" });
     }
 
     const response = result.rows.map((row) => ({
