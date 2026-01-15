@@ -91,6 +91,7 @@ const createTables = async (req, res) => {
         starting_time VARCHAR(200),
         starting_km VARCHAR(200),
         starting_image VARCHAR(200),
+        work_type VARCHAR(50),
         created_at DATE DEFAULT CURRENT_DATE
       );
     `);

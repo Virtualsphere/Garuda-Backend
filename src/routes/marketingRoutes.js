@@ -86,5 +86,6 @@ router.get('/our-ads', verifyToken, marketingController.getOurAds);
 router.get('/poster-wallet', verifyToken, walletController.getPosterWallet);
 router.get('/job-wallet', verifyToken, walletController.getJobPostWallet);
 router.get('/ads-wallet', verifyToken, walletController.getAdsWallet);
+router.get('/travel-wallet', verifyToken, walletController.getTravelWallet);
 
 module.exports = router;

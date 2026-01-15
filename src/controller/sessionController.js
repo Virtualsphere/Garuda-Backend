@@ -3,17 +3,29 @@ const axios = require("axios");
 
 const createSession = async (req, res) => {
   try {
-    const { starting_time, starting_km } = req.body;
+    const { starting_time, starting_km, work_type } = req.body;
     const starting_image = req.files?.starting_image?.[0]?.filename || null;
     const unique_id = req.user.unique_id;
 
-    const result = await pool.query(
+    const result= null;
+
+    if(req.user.role == 'regional incharge'){
+      result = await pool.query(
+      `INSERT INTO session 
+       (unique_id, starting_time, starting_km, starting_image, work_type)
+       VALUES ($1,$2,$3,$4,$5)
+       RETURNING *;`,
+      [unique_id, starting_time, starting_km, starting_image, work_type]
+    );
+    }else{
+      result = await pool.query(
       `INSERT INTO session 
        (unique_id, starting_time, starting_km, starting_image)
-       VALUES ($1,$2,$3,$4)
+       VALUES ($1,$2,$3,$4,$5)
        RETURNING *;`,
       [unique_id, starting_time, starting_km, starting_image]
     );
+    }
 
     res.status(201).json({
       message: "✅ Session created successfully",
@@ -394,4 +406,67 @@ const getMarketingSessions = async (req, res) => {
   }
 };
 
-module.exports= { createSession, updateSession, getRegionalSessions, getSessionsByUserId, getAgentSessions, getMarketingSessions }
+const getWeeklyLandStats = async (req, res) => {
+  try {
+    const unique_id = req.user.unique_id;
+
+    const result = await pool.query(`
+      SELECT 
+        to_char(date_trunc('week', created_at), 'YYYY-MM-DD') AS week_start,
+        COUNT(*)::int AS total_lands
+      FROM land_location
+      WHERE unique_id = $1
+        AND created_at >= CURRENT_DATE - INTERVAL '8 weeks'
+      GROUP BY week_start
+      ORDER BY week_start ASC
+    `, [unique_id]);
+
+    const formatted = result.rows.map((row, index) => ({
+      week: `Week ${index + 1}`,
+      date: row.week_start,
+      count: row.total_lands
+    }));
+
+    res.json({
+      success: true,
+      data: formatted
+    });
+  } catch (error) {
+    console.error("Weekly Land Stats Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const getWeeklyVerifiedLandStats = async (req, res) => {
+  try {
+    const unique_id = req.user.unique_id;
+
+    const result = await pool.query(`
+      SELECT 
+        to_char(date_trunc('week', verification_date), 'YYYY-MM-DD') AS week_start,
+        COUNT(*)::int AS total_lands
+      FROM land_location
+      WHERE verification_unique_id = $1
+        AND verification = 'verified'
+        AND verification_date >= CURRENT_DATE - INTERVAL '8 weeks'
+      GROUP BY week_start
+      ORDER BY week_start ASC
+    `, [unique_id]);
+
+    const formatted = result.rows.map((row, index) => ({
+      week: `Week ${index + 1}`,
+      date: row.week_start,
+      count: row.total_lands
+    }));
+
+    res.json({
+      success: true,
+      data: formatted
+    });
+  } catch (error) {
+    console.error("Weekly Verified Land Stats Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+module.exports= { createSession, updateSession, getRegionalSessions, getSessionsByUserId, getAgentSessions, getMarketingSessions, getWeeklyLandStats, getWeeklyVerifiedLandStats }

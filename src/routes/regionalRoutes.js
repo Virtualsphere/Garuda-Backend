@@ -54,4 +54,7 @@ router.get("/land-month-wallet", baseController.getLandMonthWallet);
 
 router.get("/physical/wallet", baseController.getPhysicalWallet);
 
+router.get("/weekly/land/data", sessionController.getWeeklyLandStats);
+router.get("/weekly/land/verification/data", sessionController.getWeeklyVerifiedLandStats);
+
 module.exports = router;
