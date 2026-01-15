@@ -54,5 +54,6 @@ router.put("/personal/details", agentDetailsUpdate, registerController.updateUse
 router.get("/travel-wallet", baseController.getTravelWallet);
 router.get("/land-wallet", baseController.getLandWallet);
 router.get("/land-month-wallet", baseController.getLandMonthWallet);
+router.get("/purchase-summary", landController.getLandPurchaseSummary);
 
 module.exports = router;

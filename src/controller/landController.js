@@ -1662,6 +1662,41 @@ const deleteLandDetails = async (req, res) => {
   }
 };
 
+const getLandPurchaseSummary = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        l.land_id,
+        l.village,
+        f.name AS farmer_name,
+        ld.land_area AS acres,
+        ld.total_land_price,
+        COUNT(lpr.id) AS purchase_request_count
+      FROM land_location l
+      LEFT JOIN farmer_details f ON l.land_id = f.land_id
+      LEFT JOIN land_details ld ON l.land_id = ld.land_id
+      LEFT JOIN land_purchase_request lpr ON l.land_id = lpr.land_id
+      WHERE l.verification = 'verified'
+      GROUP BY 
+        l.land_id, 
+        l.village, 
+        f.name, 
+        ld.land_area, 
+        ld.total_land_price
+      ORDER BY l.created_at DESC
+    `);
+
+    res.status(200).json({
+      message: "✔ Verified land purchase summary fetched",
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch purchase summary" });
+  }
+};
+
 module.exports= {
     getAllUniverfiedLandFullDetails,
     getAllRejectedLandFullDetails,
@@ -1674,5 +1709,6 @@ module.exports= {
     getAllFullLandFullDetails,
     getAllVerfiedLandFullDetails,
     getVerifiedLandDetailsById,
-    deleteLandDetails
+    deleteLandDetails,
+    getLandPurchaseSummary
 }

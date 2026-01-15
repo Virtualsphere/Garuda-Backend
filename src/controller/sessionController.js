@@ -7,7 +7,7 @@ const createSession = async (req, res) => {
     const starting_image = req.files?.starting_image?.[0]?.filename || null;
     const unique_id = req.user.unique_id;
 
-    const result= null;
+    let result= null;
 
     if(req.user.role == 'regional incharge'){
       result = await pool.query(
@@ -21,7 +21,7 @@ const createSession = async (req, res) => {
       result = await pool.query(
       `INSERT INTO session 
        (unique_id, starting_time, starting_km, starting_image)
-       VALUES ($1,$2,$3,$4,$5)
+       VALUES ($1,$2,$3,$4)
        RETURNING *;`,
       [unique_id, starting_time, starting_km, starting_image]
     );
