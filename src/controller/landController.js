@@ -597,6 +597,11 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
       updates.document_media.land_photo = req.files.land_photo.map(f => f.filename);
     }
 
+    if (req.files?.border_photo) {
+      updates.office_work = updates.office_work || {};
+      updates.office_work.border_photo = req.files.border_photo.map(f => f.filename);
+    }
+
     if (req.files?.land_video) {
       updates.document_media = updates.document_media || {};
       updates.document_media.land_video = req.files.land_video.map(f => f.filename);
@@ -610,12 +615,14 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
       gps_tracking: { table: "gps_tracking", key: "land_id" },
       dispute_details: { table: "dispute_details", key: "land_id" },
       document_media: { table: "document_media", key: "land_id" },
+      office_work: { table: "office_work", key: "land_id" }
     };
 
     // Update each table
     for (const key in updates) {
+      if (!tables[key]) continue;   // ✅ first check mapping exists
+
       const { table, key: idColumn } = tables[key];
-      if (!table) continue;
 
       const fields = updates[key];
       const columns = Object.keys(fields);
@@ -625,21 +632,15 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
 
       let setClause;
       if (key === "document_media") {
-        setClause = columns
-          .map((col, i) => `${col} = $${i + 2}::text[]`)
-          .join(", ");
-      }
-      else if (key === "land_details") {
-        setClause = columns
-          .map((col, i) => {
-            if (["water_source", "garden", "shed_details"].includes(col)) {
-              return `${col} = $${i + 2}::jsonb`;
-            }
-            return `${col} = $${i + 2}`;
-          })
-          .join(", ");
-      } 
-      else {
+        setClause = columns.map((col, i) => `${col} = $${i + 2}::text[]`).join(", ");
+      } else if (key === "land_details") {
+        setClause = columns.map((col, i) => {
+          if (["water_source", "garden", "shed_details"].includes(col)) {
+            return `${col} = $${i + 2}::jsonb`;
+          }
+          return `${col} = $${i + 2}`;
+        }).join(", ");
+      } else {
         setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
       }
 
@@ -685,6 +686,41 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
             ]
             );
         }
+    }
+
+    let parsedVisitors = [];
+
+    if (req.body.visitors) {
+      try {
+        parsedVisitors = typeof req.body.visitors === "string" ? JSON.parse(req.body.visitors) : req.body.visitors;
+      } catch (e) {
+        console.error("Invalid visitors JSON", e);
+      }
+    }
+
+    if (Array.isArray(parsedVisitors)) {
+      const officeRes = await client.query(
+        `SELECT id FROM office_work WHERE land_id = $1`,
+        [land_id]
+      );
+
+      if (officeRes.rowCount) {
+        const office_work_id = officeRes.rows[0].id;
+
+        await client.query(
+          `DELETE FROM office_work_visitors WHERE office_work_id = $1`,
+          [office_work_id]
+        );
+
+        for (const v of parsedVisitors) {
+          await client.query(
+            `INSERT INTO office_work_visitors
+            (office_work_id, visit_date, visitor_name, visitor_phone, visitor_status)
+            VALUES ($1,$2,$3,$4,$5)`,
+            [office_work_id, v.date, v.name, v.phone, v.status]
+          );
+        }
+      }
     }
 
     await client.query("COMMIT");
@@ -811,15 +847,15 @@ const updateLandDetails = async (req, res) => {
     await client.query("BEGIN");
 
     const land_id = req.params.land_id;
+
     const updates = buildStructuredUpdate({
       body: req.body || {},
       mode: "normal",
       uniqueId: req.user.unique_id,
     });
 
-
     const checkLand = await client.query(
-      `SELECT land_id FROM land_location WHERE land_id = $1`,
+      "SELECT land_id FROM land_location WHERE land_id = $1",
       [land_id]
     );
 
@@ -844,11 +880,6 @@ const updateLandDetails = async (req, res) => {
       updates.document_media.land_photo = req.files.land_photo.map(f => f.filename);
     }
 
-    if (req.files?.border_photo) {
-      updates.office_work = updates.office_work || {};
-      updates.office_work.border_photo = req.files.border_photo.map(f => f.filename);
-    }
-
     if (req.files?.land_video) {
       updates.document_media = updates.document_media || {};
       updates.document_media.land_video = req.files.land_video.map(f => f.filename);
@@ -862,15 +893,14 @@ const updateLandDetails = async (req, res) => {
       gps_tracking: { table: "gps_tracking", key: "land_id" },
       dispute_details: { table: "dispute_details", key: "land_id" },
       document_media: { table: "document_media", key: "land_id" },
-      office_work: { table: "office_work", key: "land_id" }
     };
 
     // Update each table
     for (const key in updates) {
-      if (!tables[key]) continue;   // ✅ first check mapping exists
+      const tableConfig = tables[key];
+      if (!tableConfig) continue;
 
-      const { table, key: idColumn } = tables[key];
-
+      const { table, key: idColumn } = tableConfig;
       const fields = updates[key];
       const columns = Object.keys(fields);
       const values = Object.values(fields);
@@ -878,15 +908,20 @@ const updateLandDetails = async (req, res) => {
       if (!columns.length) continue;
 
       let setClause;
+
       if (key === "document_media") {
-        setClause = columns.map((col, i) => `${col} = $${i + 2}::text[]`).join(", ");
+        setClause = columns
+          .map((col, i) => `${col} = $${i + 2}::text[]`)
+          .join(", ");
       } else if (key === "land_details") {
-        setClause = columns.map((col, i) => {
-          if (["water_source", "garden", "shed_details"].includes(col)) {
-            return `${col} = $${i + 2}::jsonb`;
-          }
-          return `${col} = $${i + 2}`;
-        }).join(", ");
+        setClause = columns
+          .map((col, i) => {
+            if (["water_source", "garden", "shed_details"].includes(col)) {
+              return `${col} = $${i + 2}::jsonb`;
+            }
+            return `${col} = $${i + 2}`;
+          })
+          .join(", ");
       } else {
         setClause = columns.map((col, i) => `${col} = $${i + 2}`).join(", ");
       }
@@ -898,47 +933,9 @@ const updateLandDetails = async (req, res) => {
     }
 
     await client.query(
-      `UPDATE land_location 
-      SET created_at = CURRENT_DATE 
-      WHERE land_id = $1`,
+      "UPDATE land_location SET created_at = CURRENT_DATE WHERE land_id = $1",
       [land_id]
     );
-
-    let parsedVisitors = [];
-
-    if (req.body.visitors) {
-      try {
-        parsedVisitors = typeof req.body.visitors === "string" ? JSON.parse(req.body.visitors) : req.body.visitors;
-      } catch (e) {
-        console.error("Invalid visitors JSON", e);
-      }
-    }
-
-    if (Array.isArray(parsedVisitors)) {
-      const officeRes = await client.query(
-        `SELECT id FROM office_work WHERE land_id = $1`,
-        [land_id]
-      );
-
-      if (officeRes.rowCount) {
-        const office_work_id = officeRes.rows[0].id;
-
-        await client.query(
-          `DELETE FROM office_work_visitors WHERE office_work_id = $1`,
-          [office_work_id]
-        );
-
-        for (const v of parsedVisitors) {
-          await client.query(
-            `INSERT INTO office_work_visitors
-            (office_work_id, visit_date, visitor_name, visitor_phone, visitor_status)
-            VALUES ($1,$2,$3,$4,$5)`,
-            [office_work_id, v.date, v.name, v.phone, v.status]
-          );
-        }
-      }
-    }
-
 
     await client.query("COMMIT");
 
