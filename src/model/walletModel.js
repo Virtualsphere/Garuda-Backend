@@ -25,7 +25,12 @@ const createWalletTable= async()=>{
       varification VARCHAR(100),
       date VARCHAR(255),
       work_amount VARCHAR(255),
-      status VARCHAR(100)
+      status VARCHAR(100),
+
+      CONSTRAINT fk_land_wallet_land
+        FOREIGN KEY (land_id)
+        REFERENCES land_location(land_id)
+        ON DELETE CASCADE
     );
   `);
 
@@ -37,7 +42,12 @@ const createWalletTable= async()=>{
       varification VARCHAR(100),
       date VARCHAR(255),
       month_end_amount VARCHAR(255),
-      status VARCHAR(100)
+      status VARCHAR(100),
+
+      CONSTRAINT fk_land_month_wallet_land
+        FOREIGN KEY (land_id)
+        REFERENCES land_location(land_id)
+        ON DELETE CASCADE
     );
   `);
 
@@ -49,7 +59,12 @@ const createWalletTable= async()=>{
             varification VARCHAR(100),
             date VARCHAR(255),
             physical_verification_amount VARCHAR(255),
-            status VARCHAR(100)
+            status VARCHAR(100),
+
+            CONSTRAINT fk_land_physical_verification_wallet_land
+            FOREIGN KEY (land_id)
+            REFERENCES land_location(land_id)
+            ON DELETE CASCADE
         );
     `)
 

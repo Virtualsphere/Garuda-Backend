@@ -8,7 +8,12 @@ const creatLandPurchaseRequestTable= async()=>{
       unique_id VARCHAR(255),
       land_code VARCHAR(255),
       created_at DATE DEFAULT CURRENT_DATE,
-      status VARCHAR(100)
+      status VARCHAR(100),
+
+      CONSTRAINT fk_land_purchase_request_land
+        FOREIGN KEY (land_id)
+        REFERENCES land_location(land_id)
+        ON DELETE CASCADE
     );
   `);
 }

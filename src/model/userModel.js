@@ -13,7 +13,8 @@ const createUserTable = async () => {
       blood_group VARCHAR(50),
       image VARCHAR(100),
       photo VARCHAR(100),
-      jointed_at VARCHAR(100)
+      jointed_at VARCHAR(100),
+      status VARCHAR(30)
     );
   `);
 

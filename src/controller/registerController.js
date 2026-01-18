@@ -2,7 +2,7 @@ const pool = require('../db/db');
 const bcrypt = require('bcrypt');
 
 
-const userFields = ["name", "email", "phone", "blood_group", "join_date"];
+const userFields = ["name", "email", "phone", "blood_group", "join_date", "status"];
 const addressFields = ["state", "district", "mandal", "village", "pincode", "near_town_1", "near_town_2", "near_town_3"];
 const aadharFields = ["aadhar_number"];
 const salaryFields = ["package"];

@@ -29,6 +29,8 @@ const bannerController= require("../controller/bannerController");
 
 const notificationController= require("../controller/notificationController");
 
+const purchaseLandController= require("../controller/landPurchaseController");
+
 router.use(verifyToken);
 
 const userDetailsUpdate= upload.fields([
@@ -154,5 +156,8 @@ router.get('/banner', bannerDetail, bannerController.getBanner);
 
 router.get('/notification', notificationController.getNotification);
 router.put('/notification/:id', notificationController.updateNotification);
+
+router.get('/purchase/land/details/:landId', purchaseLandController.getAllLandPurchaseDetail);
+router.put('/purchase/land', purchaseLandController.updateLandPurchaseDetail);
 
 module.exports = router;

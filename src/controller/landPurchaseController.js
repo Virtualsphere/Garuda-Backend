@@ -328,8 +328,128 @@ const getSinglePurchaseDetail = async (req, res) =>{
   }
 }
 
+const getAllLandPurchaseDetail = async (req, res) => {
+  try {
+    const { landId } = req.params;
+
+    const query = `
+      SELECT 
+        lpr.id AS purchase_id,
+        lpr.unique_id,
+        lpr.land_id,
+        lpr.land_code,
+        lpr.status AS purchase_status,
+        lpr.created_at,
+
+        u.name AS buyer_name,
+        u.phone AS buyer_phone,
+
+        ll.state,
+        ll.district,
+        ll.mandal,
+        ll.village,
+        ll.location
+
+      FROM land_purchase_request lpr
+      LEFT JOIN users u ON u.unique_id = lpr.unique_id
+      LEFT JOIN land_location ll ON ll.land_id = lpr.land_id
+      WHERE lpr.land_id = $1
+      ORDER BY lpr.created_at DESC
+    `;
+
+    const result = await pool.query(query, [landId]);
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        message: "No purchase requests found for this land",
+        data: []
+      });
+    }
+
+    const data = result.rows.map(row => ({
+      purchase_id: row.purchase_id,
+      unique_id: row.unique_id,
+      land_id: row.land_id,
+      land_code: row.land_code,
+      status: row.purchase_status,
+      created_at: row.created_at,
+
+      buyer: {
+        name: row.buyer_name,
+        phone: row.buyer_phone
+      },
+
+      land_location: {
+        state: row.state,
+        district: row.district,
+        mandal: row.mandal,
+        village: row.village,
+        location: row.location
+      }
+    }));
+
+    res.status(200).json({
+      message: "✔ All land purchase requests fetched successfully",
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+    console.error("Get All Land Purchase Detail Error:", error);
+    res.status(500).json({ error: "Failed to fetch land purchase details" });
+  }
+};
+
+const updateLandPurchaseDetail = async (req, res) => {
+  try {
+    const { land_id, unique_id, status } = req.body;
+
+    if (!land_id || !unique_id || !status) {
+      return res.status(400).json({
+        error: "land_id, unique_id and status are required"
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE land_purchase_request
+      SET status = $1
+      WHERE land_id = $2 AND unique_id = $3
+      RETURNING *
+      `,
+      [status, land_id, unique_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        message: "No purchase request found for this land and user"
+      });
+    }
+
+    const updated = result.rows[0];
+
+    res.status(200).json({
+      message: "✔ Purchase status updated successfully",
+      data: {
+        id: updated.id,
+        land_id: updated.land_id,
+        unique_id: updated.unique_id,
+        land_code: updated.land_code,
+        status: updated.status,
+        updated_at: updated.updated_at || updated.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error("Update Land Purchase Error:", error);
+    res.status(500).json({ error: "Failed to update land purchase status" });
+  }
+};
+
 module.exports = {
   createLandPurchase,
   getLandPurchaseDetail,
-  getSinglePurchaseDetail
+  getSinglePurchaseDetail,
+  getAllLandPurchaseDetail,
+  updateLandPurchaseDetail
 };

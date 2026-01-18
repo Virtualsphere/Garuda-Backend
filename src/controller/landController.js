@@ -1633,15 +1633,12 @@ const deleteLandDetails = async (req, res) => {
 
     await client.query("BEGIN");
 
-    // Delete from child tables first
-    await client.query(`DELETE FROM land_wallet WHERE land_id = $1`, [landId]);
-    await client.query(`DELETE FROM land_month_wallet WHERE land_id = $1`, [landId]);
     await client.query(`DELETE FROM document_media WHERE land_id = $1`, [landId]);
     await client.query(`DELETE FROM dispute_details WHERE land_id = $1`, [landId]);
     await client.query(`DELETE FROM gps_tracking WHERE land_id = $1`, [landId]);
     await client.query(`DELETE FROM land_details WHERE land_id = $1`, [landId]);
     await client.query(`DELETE FROM farmer_details WHERE land_id = $1`, [landId]);
-    await client.query(`DELETE FROM office_work WHERE land_id= $1 CASCADE`, [landId]);
+    await client.query(`DELETE FROM office_work WHERE land_id= $1`, [landId]);
 
     // Finally delete main land record
     await client.query(`DELETE FROM land_location WHERE land_id = $1`, [landId]);
