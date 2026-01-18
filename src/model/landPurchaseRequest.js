@@ -9,6 +9,9 @@ const creatLandPurchaseRequestTable= async()=>{
       land_code VARCHAR(255),
       created_at DATE DEFAULT CURRENT_DATE,
       status VARCHAR(100),
+      phone VARCHAR(20),
+      name VARCHAR(100),
+      description TEXT,
 
       CONSTRAINT fk_land_purchase_request_land
         FOREIGN KEY (land_id)

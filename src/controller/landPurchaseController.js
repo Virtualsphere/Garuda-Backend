@@ -330,8 +330,6 @@ const getSinglePurchaseDetail = async (req, res) =>{
 
 const getAllLandPurchaseDetail = async (req, res) => {
   try {
-    const { landId } = req.params;
-
     const query = `
       SELECT 
         lpr.id AS purchase_id,
@@ -353,11 +351,10 @@ const getAllLandPurchaseDetail = async (req, res) => {
       FROM land_purchase_request lpr
       LEFT JOIN users u ON u.unique_id = lpr.unique_id
       LEFT JOIN land_location ll ON ll.land_id = lpr.land_id
-      WHERE lpr.land_id = $1
       ORDER BY lpr.created_at DESC
     `;
 
-    const result = await pool.query(query, [landId]);
+    const result = await pool.query(query);
 
     if (!result.rows.length) {
       return res.status(404).json({

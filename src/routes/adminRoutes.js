@@ -157,7 +157,7 @@ router.get('/banner', bannerDetail, bannerController.getBanner);
 router.get('/notification', notificationController.getNotification);
 router.put('/notification/:id', notificationController.updateNotification);
 
-router.get('/purchase/land/details/:landId', purchaseLandController.getAllLandPurchaseDetail);
+router.get('/purchase/land/details', purchaseLandController.getAllLandPurchaseDetail);
 router.put('/purchase/land', purchaseLandController.updateLandPurchaseDetail);
 
 module.exports = router;

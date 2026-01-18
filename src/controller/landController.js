@@ -93,7 +93,11 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
   addField("office_work", "suggested_farmer_phone", body.suggested_farmer_phone);
   addField("office_work", "suggested_village", body.suggested_village);
   addField("office_work", "suggested_mandal", body.suggested_mandal);
-  addField("office_work", "keep_in_special_package", body.keep_in_special_package);
+  if(body.keep_in_special_package== null){
+    addField("office_work", "keep_in_special_package", "false");
+  }else{
+    addField("office_work", "keep_in_special_package", body.keep_in_special_package);
+  }
   addField("office_work", "package_name", body.package_name);
   addField("office_work", "package_remarks", body.package_remarks);
   addField("office_work", "mediator_id", body.mediator_id);
