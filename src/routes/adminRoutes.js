@@ -80,6 +80,7 @@ router.put("/physical/wallet/:id", baseController.updatePhysicalVerificationWall
 
 router.get("/buyers", buyerController.getBuyers);
 router.post("/buyers", buyerController.createBuyer);
+router.get("/buyer/:buyerId", buyerController.getBuyerById);
 router.post("/wishlist", buyerController.addWishlist);
 router.get("/wishlist", buyerController.getWishList);
 router.get("/session/:session_id", sessionController.getSessionsByUserId);

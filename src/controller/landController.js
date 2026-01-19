@@ -386,7 +386,7 @@ const getAllUniverfiedLandFullDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -488,7 +488,7 @@ const getAllRejectedLandFullDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -772,7 +772,7 @@ const getAllLandFullDetails = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -1214,9 +1214,9 @@ const getAllFullLandFullDetails = async (req, res) => {
 
     const { district, state, price_per_acres, total_land_price, land_area } = req.query;
 
-    let conditions = [`l.status = $1`, `l.verification = $2`];
-    let values = ["true", "verified"];
-    let index = 3;
+    let conditions = [`l.status = $1`];
+    let values = ["true"];
+    let index = 2;
 
     if (district) {
       conditions.push(`l.district ILIKE $${index++}`);
@@ -1226,9 +1226,16 @@ const getAllFullLandFullDetails = async (req, res) => {
       conditions.push(`l.state ILIKE $${index++}`);
       values.push(`%${state}%`);
     }
-    if (price_per_acres) {
-      conditions.push(`ld.price_per_acre <= $${index++}`);
-      values.push(price_per_acres);
+    if (land_area) {
+      conditions.push(`
+        (
+          NULLIF(
+            regexp_replace(ld.land_area, '[^0-9.]', '', 'g'),
+            ''
+          )::numeric <= $${index++}
+        )
+      `);
+      values.push(Number(land_area));
     }
     if (total_land_price) {
       conditions.push(`ld.total_land_price <= $${index++}`);
@@ -1488,7 +1495,7 @@ const getAllVerfiedLandFullDetails = async (req, res) => {
     const result = await pool.query(query, values);
 
     if (!result.rows.length) {
-      return res.status(404).json({ message: "No land records found" });
+      return res.status(200).json({ message: "No land records found" });
     }
 
     const response = result.rows.map((row) => ({
@@ -1597,7 +1604,7 @@ const getVerifiedLandDetailsById = async (req, res) => {
     );
 
     if (!result.rows.length)
-      return res.status(404).json({ 
+      return res.status(200).json({ 
         message: "Land record not found or not verified",
         data: null 
       });

@@ -68,6 +68,38 @@ const createBuyer= async(req, res)=>{
    }
 }
 
+const getBuyerById = async (req, res) => {
+  try {
+    const { buyerId } = req.params;
+
+    const query = `
+      SELECT * 
+      FROM buyers 
+      WHERE id = $1
+    `;
+
+    const result = await pool.query(query, [buyerId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Buyer not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Buyer fetched successfully",
+      data: result.rows[0],
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      message: "Error fetching buyer",
+      error: err.message,
+    });
+  }
+};
+
 const getBuyers = async (req, res) => {
   try {
     const { state, district, town, sectors } = req.query;
@@ -299,5 +331,6 @@ module.exports= {
     createBuyer,
     getBuyers,
     addWishlist,
-    getWishList
+    getWishList,
+    getBuyerById
 }
