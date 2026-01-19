@@ -68,10 +68,10 @@ const createUserTable = async () => {
     CREATE TABLE IF NOT EXISTS work_location (
       id SERIAL PRIMARY KEY,
       unique_id VARCHAR(255) UNIQUE NOT NULL,
-      work_state VARCHAR(255),
-      work_district VARCHAR(255),
-      work_mandal VARCHAR(255),
-      work_village VARCHAR(255)
+      work_state JSONB,
+      work_district JSONB,
+      work_mandal JSONB,
+      work_village JSONB
     );
   `);
 

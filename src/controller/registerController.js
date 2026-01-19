@@ -1,6 +1,21 @@
 const pool = require('../db/db');
 const bcrypt = require('bcrypt');
 
+const toJsonArray = (value) => {
+  if (!value) return JSON.stringify([]);
+
+  if (Array.isArray(value)) {
+    return JSON.stringify(value);
+  }
+
+  return JSON.stringify(
+    value
+      .split(",")
+      .map(v => v.trim())
+      .filter(Boolean)
+  );
+};
+
 
 const userFields = ["name", "email", "phone", "blood_group", "join_date", "status"];
 const addressFields = ["state", "district", "mandal", "village", "pincode", "near_town_1", "near_town_2", "near_town_3"];
@@ -140,6 +155,16 @@ const updateUserDetails = async (req, res) => {
       if (vehicleFields.includes(key)) dataVehicle[key] = body[key];
     }
 
+    const workStateJson= toJsonArray(req.body.work_state);
+    const workDistrictJson= toJsonArray(req.body.work_district);
+    const workMandalJson= toJsonArray(req.body.work_mandal);
+    const workVillageJson= toJsonArray(req.body.work_village);
+
+    dataWork.state= workStateJson;
+    dataWork.district= workDistrictJson;
+    dataWork.mandal= workMandalJson;
+    dataWork.village= workVillageJson;
+
     // Handle image uploads
     if (req.files?.image) {
       dataUsers.image = req.files.image[0].filename || null;
@@ -262,10 +287,8 @@ const updateByAdminUserDetails = async (req, res) => {
 const getUserProfile = async (req, res) => {
   try {
     const uniqueId = req.user.unique_id;
-
     const baseURL = `${req.protocol}://${req.get("host")}/public/images/`;
 
-    // Get user
     const userRes = await pool.query(
       `SELECT * FROM users WHERE unique_id = $1`,
       [uniqueId]
@@ -279,20 +302,13 @@ const getUserProfile = async (req, res) => {
     user.image = user.image ? baseURL + user.image : null;
     user.photo = user.photo ? baseURL + user.photo : null;
 
-    // Fetch other tables
     const [address, aadhar, salary, bank, work, vehicle] = await Promise.all([
       pool.query(`SELECT * FROM address WHERE unique_id = $1`, [uniqueId]),
       pool.query(`SELECT * FROM aadhar_card WHERE unique_id = $1`, [uniqueId]),
-      pool.query(`SELECT * FROM salary_package WHERE unique_id = $1`, [
-        uniqueId,
-      ]),
+      pool.query(`SELECT * FROM salary_package WHERE unique_id = $1`, [uniqueId]),
       pool.query(`SELECT * FROM bank_account WHERE unique_id = $1`, [uniqueId]),
-      pool.query(`SELECT * FROM work_location WHERE unique_id = $1`, [
-        uniqueId,
-      ]),
-      pool.query(`SELECT * FROM vehicle_information WHERE unique_id = $1`, [
-        uniqueId,
-      ]),
+      pool.query(`SELECT * FROM work_location WHERE unique_id = $1`, [uniqueId]),
+      pool.query(`SELECT * FROM vehicle_information WHERE unique_id = $1`, [uniqueId]),
     ]);
 
     const aadharData = aadhar.rows[0] || null;
@@ -312,7 +328,7 @@ const getUserProfile = async (req, res) => {
       aadhar: aadharData,
       salary_package: salary.rows[0] || null,
       bank_account: bank.rows[0] || null,
-      work_location: work.rows[0] || null,
+      work_location: work.rows[0] || null,   // JSONB auto becomes array
       vehicle_information: vehicle.rows[0] || null,
     });
   } catch (err) {
@@ -325,43 +341,34 @@ const getAllUserProfile = async (req, res) => {
   try {
     const baseURL = `${req.protocol}://${req.get("host")}/public/images/`;
 
-    // Get all users
     const userRes = await pool.query(`SELECT * FROM users`);
 
     if (!userRes.rows.length) {
       return res.status(404).json({ error: "No users found" });
     }
 
-    // Add full image URLs to each user
-    const users = userRes.rows.map((u) => ({
+    const users = userRes.rows.map(u => ({
       ...u,
       image: u.image ? baseURL + u.image : null,
       photo: u.photo ? baseURL + u.photo : null,
     }));
 
-    // Fetch all related tables
     const [address, aadhar, salary, bank, work, vehicle, assignment] = await Promise.all([
       pool.query(`SELECT * FROM address`),
       pool.query(`SELECT * FROM aadhar_card`),
       pool.query(`SELECT * FROM salary_package`),
       pool.query(`SELECT * FROM bank_account`),
-      pool.query(`SELECT * FROM work_location`),
+      pool.query(`SELECT * FROM work_location`),   // JSONB fields auto parsed
       pool.query(`SELECT * FROM vehicle_information`),
       pool.query(`SELECT * FROM personal_assignment`),
     ]);
 
-    // Add full image URLs to aadhar table
-    const aadharData = aadhar.rows.map((a) => ({
+    const aadharData = aadhar.rows.map(a => ({
       ...a,
-      aadhar_front_image: a.aadhar_front_image
-        ? baseURL + a.aadhar_front_image
-        : null,
-      aadhar_back_image: a.aadhar_back_image
-        ? baseURL + a.aadhar_back_image
-        : null,
+      aadhar_front_image: a.aadhar_front_image ? baseURL + a.aadhar_front_image : null,
+      aadhar_back_image: a.aadhar_back_image ? baseURL + a.aadhar_back_image : null,
     }));
 
-    // Final response
     res.status(200).json({
       message: "All users fetched successfully",
       users,
@@ -369,7 +376,7 @@ const getAllUserProfile = async (req, res) => {
       aadhar: aadharData,
       salary_package: salary.rows,
       bank_account: bank.rows,
-      work_location: work.rows,
+      work_location: work.rows,   // work_state, work_district etc are real arrays now
       vehicle_information: vehicle.rows,
       personal_assignment: assignment.rows,
     });
