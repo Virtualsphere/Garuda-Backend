@@ -24,9 +24,10 @@ const createOfficeWorkTable = async () => {
         border_latitude TEXT,
         border_longitude TEXT,
         border_photo TEXT[],
-        verified_by VARCHAR(255),
-        date_of_verification VARCHAR(30),
-        office_status VARCHAR(20),
+        verified_by_telecaller VARCHAR(255),
+        date_of_verification_telecaller VARCHAR(30),
+        verified_by_town_incharge VARCHAR(255),
+        date_of_verification_town_incharge VARCHAR(30),
 
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

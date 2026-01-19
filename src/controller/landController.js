@@ -46,6 +46,7 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
     addField("land_location", "verification", body.verification);
     addField("land_location", "remarks", body.remarks);
     addField("land_location", "admin_verification", body.admin_verification);
+    addField("land_location", "recheck", body.recheck);
   }
 
   // farmer_details
@@ -104,9 +105,10 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
   addField("office_work", "board_end_date", body.board_end_date);
   addField("office_work", "border_latitude", body.border_latitude);
   addField("office_work", "border_longitude", body.border_longitude);
-  addField("office_work", "verified_by", body.verified_by);
-  addField("office_work", "date_of_verification", body.date_of_verification);
-  addField("office_work", "office_status", body.office_status);
+  addField("office_work", "verified_by_telecaller", body.verified_by_telecaller);
+  addField("office_work", "date_of_verification_telecaller", body.date_of_verification_telecaller);
+  addField("office_work", "verified_by_town_incharge", body.verified_by_town_incharge);
+  addField("office_work", "date_of_verification_town_incharge", body.date_of_verification_town_incharge);
   return updates;
 }
 
@@ -1237,60 +1239,97 @@ const getAllFullLandFullDetails = async (req, res) => {
       values.push(land_area);
     }
 
+    // CORRECTED SQL QUERY
     const query = `
       SELECT 
-  l.*,
-  f.*,
-  ld.*,
-  gps.*,
-  d.*,
-  dm.*,
-  ow.*,
-
-  u.unique_id AS user_unique_id,
-  u.name AS user_name,
-  u.role AS user_role,
-
-  mu.unique_id AS mediator_unique_id,
-  mu.name AS mediator_name,
-
-  COALESCE(vs.visitors, '[]') AS visitors
-
-FROM land_location l
-LEFT JOIN farmer_details f ON l.land_id = f.land_id
-LEFT JOIN land_details ld ON l.land_id = ld.land_id
-LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
-LEFT JOIN dispute_details d ON l.land_id = d.land_id
-LEFT JOIN document_media dm ON l.land_id = dm.land_id
-LEFT JOIN office_work ow ON l.land_id = ow.land_id
-LEFT JOIN users u ON l.unique_id = u.unique_id
-LEFT JOIN users mu ON ow.mediator_id = mu.unique_id
-
-LEFT JOIN (
-  SELECT 
-    office_work_id,
-    json_agg(
-      jsonb_build_object(
-        'id', id,
-        'visit_date', visit_date,
-        'visitor_name', visitor_name,
-        'visitor_phone', visitor_phone,
-        'visitor_status', visitor_status
-      ) ORDER BY visit_date
-    ) AS visitors
-  FROM office_work_visitors
-  GROUP BY office_work_id
-) vs ON ow.id = vs.office_work_id
-
-WHERE ${conditions.join(" AND ")}
-ORDER BY l.created_at DESC;
+        l.*,
+        f.*,
+        ld.*,
+        gps.*,
+        d.*,
+        dm.*,
+        ow.*,
+        
+        u.unique_id AS user_unique_id,
+        u.name AS user_name,
+        u.role AS user_role,
+        
+        -- Mediator details (JOIN on mediator_id)
+        mu.unique_id AS mediator_unique_id,
+        mu.name AS mediator_name,
+        mu.phone AS mediator_phone,
+        mu.email AS mediator_email,
+        
+        -- Telecaller verification details (JOIN on verified_by_telecaller)
+        vbt.unique_id AS verified_by_telecaller_unique_id,
+        vbt.name AS verified_by_telecaller_name,
+        vbt.phone AS verified_by_telecaller_phone,
+        
+        -- Town incharge verification details (JOIN on verified_by_town_incharge)
+        vti.unique_id AS verified_by_town_incharge_unique_id,
+        vti.name AS verified_by_town_incharge_name,
+        vti.phone AS verified_by_town_incharge_phone,
+        
+        -- Date fields from office_work
+        ow.date_of_verification_telecaller,
+        ow.date_of_verification_town_incharge,
+        
+        COALESCE(vs.visitors, '[]') AS visitors
+        
+      FROM land_location l
+      
+      -- Basic joins
+      LEFT JOIN farmer_details f ON l.land_id = f.land_id
+      LEFT JOIN land_details ld ON l.land_id = ld.land_id
+      LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
+      LEFT JOIN dispute_details d ON l.land_id = d.land_id
+      LEFT JOIN document_media dm ON l.land_id = dm.land_id
+      LEFT JOIN office_work ow ON l.land_id = ow.land_id
+      
+      -- User who created the land entry
+      LEFT JOIN users u ON l.unique_id = u.unique_id
+      
+      -- Mediator (based on mediator_id in office_work)
+      LEFT JOIN users mu ON ow.mediator_id = mu.unique_id
+      
+      -- Telecaller verification (based on verified_by_telecaller in office_work)
+      LEFT JOIN users vbt ON ow.verified_by_telecaller = vbt.unique_id
+      
+      -- Town incharge verification (based on verified_by_town_incharge in office_work) 
+      -- FIXED: Changed from 'user' to 'users'
+      LEFT JOIN users vti ON ow.verified_by_town_incharge = vti.unique_id
+      
+      -- Visitors aggregation
+      LEFT JOIN (
+        SELECT 
+          office_work_id,
+          json_agg(
+            jsonb_build_object(
+              'id', id,
+              'visit_date', visit_date,
+              'visitor_name', visitor_name,
+              'visitor_phone', visitor_phone,
+              'visitor_status', visitor_status
+            ) ORDER BY visit_date
+          ) AS visitors
+        FROM office_work_visitors
+        GROUP BY office_work_id
+      ) vs ON ow.id = vs.office_work_id
+      
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY l.created_at DESC;
     `;
+
+    console.log("SQL Query:", query); // Debug log
+    console.log("Query values:", values); // Debug log
 
     const result = await pool.query(query, values);
 
     if (!result.rows.length) {
       return res.status(404).json({ message: "No land records found" });
     }
+
+    console.log("First row sample:", JSON.stringify(result.rows[0], null, 2)); // Debug log
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -1309,6 +1348,7 @@ ORDER BY l.created_at DESC;
         location: row.location,
         verification: row.verification,
         admin_verification: row.admin_verification,
+        recheck: row.recheck,
       },
 
       farmer_details: {
@@ -1366,7 +1406,21 @@ ORDER BY l.created_at DESC;
         mediator: {
           mediator_id: row.mediator_id,
           name: row.mediator_name,
+          phone: row.mediator_phone,
+          email: row.mediator_email
         },
+        verified_by_telecaller: {
+          verified_by_telecaller_unique_id: row.verified_by_telecaller_unique_id,
+          verified_by_telecaller_name: row.verified_by_telecaller_name,
+          verified_by_telecaller_phone: row.verified_by_telecaller_phone
+        },
+        verified_by_town_incharge: {
+          verified_by_town_incharge_unique_id: row.verified_by_town_incharge_unique_id,
+          verified_by_town_incharge_name: row.verified_by_town_incharge_name,
+          verified_by_town_incharge_phone: row.verified_by_town_incharge_phone
+        },
+        date_of_verification_telecaller: row.date_of_verification_telecaller,
+        date_of_verification_town_incharge: row.date_of_verification_town_incharge,
         certification_willingness: row.certification_willingness,
         certification_location: row.certification_location,
         board_start_date: row.board_start_date,
@@ -1374,10 +1428,7 @@ ORDER BY l.created_at DESC;
         border_latitude: row.border_latitude,
         border_longitude: row.border_longitude,
         border_photo: (row.border_photo || []).map(p => baseURL + "images/" + p),
-        visitors: row.visitors,
-        verified_by: row.verified_by,
-        date_of_verification: row.date_of_verification,
-        office_status: row.office_status,
+        visitors: row.visitors
       }
     }));
 
@@ -1389,7 +1440,7 @@ ORDER BY l.created_at DESC;
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Error in getAllFullLandFullDetails:", err);
     return res.status(500).json({ error: "Failed to fetch land details" });
   }
 };

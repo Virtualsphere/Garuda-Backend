@@ -18,7 +18,8 @@ const createTables = async (req, res) => {
         verification_unique_id VARCHAR(255),
         land_code VARCHAR(255),
         admin_verification VARCHAR(50),
-        purchase_status VARCHAR(50)
+        purchase_status VARCHAR(50),
+        recheck VARCHAR(30)
       );
     `);
 

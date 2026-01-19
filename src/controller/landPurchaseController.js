@@ -371,6 +371,7 @@ const getAllLandPurchaseDetail = async (req, res) => {
       land_code: row.land_code,
       status: row.purchase_status,
       created_at: row.created_at,
+      description: row.description,
 
       buyer: {
         name: row.buyer_name,

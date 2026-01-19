@@ -155,7 +155,15 @@ const getRegionalSessions = async (req, res) => {
 
     const sessionRes = await pool.query(
       `
-      SELECT s.*, e.*
+      SELECT 
+        s.id AS session_id,
+        s.created_at,
+        s.starting_km,
+        s.starting_image,
+        e.end_km,
+        e.end_image,
+        e.transport_charges,
+        e.ticket_image
       FROM session s
       LEFT JOIN end_session e ON e.session_id = s.id
       WHERE s.unique_id = $1
@@ -164,13 +172,14 @@ const getRegionalSessions = async (req, res) => {
       [unique_id]
     );
 
-    const map = {};
+    const sessionMap = {};
 
     sessionRes.rows.forEach(row => {
       const date = row.created_at.toISOString().split("T")[0];
 
-      if (!map[date]) {
-        map[date] = {
+      if (!sessionMap[row.session_id]) {
+        sessionMap[row.session_id] = {
+          session_id: row.session_id,
           date,
           land_status: !!landMap[date],
           verification_status: !!verifyMap[date],
@@ -184,7 +193,7 @@ const getRegionalSessions = async (req, res) => {
       }
 
       if (row.end_km) {
-        map[date].end_sessions.push({
+        sessionMap[row.session_id].end_sessions.push({
           end_km: row.end_km,
           end_image: row.end_image ? baseURL + "images/" + row.end_image : null,
           transport_charges: row.transport_charges,
@@ -193,7 +202,11 @@ const getRegionalSessions = async (req, res) => {
       }
     });
 
-    res.json({ message: "✔ Sessions fetched", data: Object.values(map) });
+    res.json({
+      message: "✔ Sessions fetched",
+      data: Object.values(sessionMap)
+    });
+
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Server error" });
@@ -270,30 +283,27 @@ const getAgentSessions = async (req, res) => {
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
 
     const landRes = await pool.query(
-      `
-      SELECT ll.created_at, ll.status, fd.name AS farmer_name
-      FROM land_location ll
-      LEFT JOIN farmer_details fd ON fd.land_id = ll.land_id
-      WHERE ll.unique_id = $1
-      `,
+      `SELECT ll.created_at, ll.status, fd.name AS farmer_name
+       FROM land_location ll
+       LEFT JOIN farmer_details fd ON fd.land_id = ll.land_id
+       WHERE ll.unique_id = $1`,
       [unique_id]
     );
 
     const landMap = {};
-    landRes.rows.forEach(row => {
-      if (row.created_at) {
-        const date = row.created_at.toISOString().split("T")[0];
-        landMap[date] = {
-          farmer_name: row.farmer_name || null,
-          status: row.status === "true",
+    landRes.rows.forEach(r => {
+      if (r.created_at) {
+        const d = r.created_at.toISOString().split("T")[0];
+        landMap[d] = {
+          farmer_name: r.farmer_name || null,
+          status: r.status === "true"
         };
       }
     });
 
     const sessionRes = await pool.query(
-      `
-      SELECT 
-        s.id,
+      `SELECT 
+        s.id AS session_id,
         s.created_at,
         s.starting_time,
         s.starting_km,
@@ -306,19 +316,19 @@ const getAgentSessions = async (req, res) => {
       FROM session s
       LEFT JOIN end_session e ON e.session_id = s.id
       WHERE s.unique_id = $1
-      ORDER BY s.id DESC, e.id ASC
-      `,
+      ORDER BY s.id DESC, e.id ASC`,
       [unique_id]
     );
 
-    const map = {};
+    const sessionMap = {};
 
     sessionRes.rows.forEach(row => {
       const date = row.created_at.toISOString().split("T")[0];
       const land = landMap[date] || {};
 
-      if (!map[date]) {
-        map[date] = {
+      if (!sessionMap[row.session_id]) {
+        sessionMap[row.session_id] = {
+          session_id: row.session_id,
           date,
           status: land.status || false,
           farmer_name: land.farmer_name || null,
@@ -332,7 +342,7 @@ const getAgentSessions = async (req, res) => {
       }
 
       if (row.end_km) {
-        map[date].end_sessions.push({
+        sessionMap[row.session_id].end_sessions.push({
           end_time: row.end_time,
           end_km: row.end_km,
           end_image: row.end_image ? baseURL + "images/" + row.end_image : null,
@@ -342,7 +352,11 @@ const getAgentSessions = async (req, res) => {
       }
     });
 
-    res.json({ message: "✔ Sessions fetched", data: Object.values(map) });
+    res.json({
+      message: "✔ Sessions fetched",
+      data: Object.values(sessionMap)
+    });
+
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Server error" });
