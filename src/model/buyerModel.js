@@ -9,7 +9,7 @@ const buyerTable = async () => {
       phone VARCHAR(20),
       state VARCHAR(100),
       district VARCHAR(100),
-      sectors VARCHAR(200),
+      mandal VARCHAR(200),
       near_town_1 VARCHAR(255),
       near_town_2 VARCHAR(255),
       acres VARCHAR(255),

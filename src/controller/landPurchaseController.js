@@ -338,6 +338,7 @@ const getAllLandPurchaseDetail = async (req, res) => {
         lpr.land_code,
         lpr.status AS purchase_status,
         lpr.created_at,
+        lpr.description,
 
         u.name AS buyer_name,
         u.phone AS buyer_phone,

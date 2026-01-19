@@ -45,6 +45,7 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
     addField("land_location", "verification_unique_id", uniqueId);
     addField("land_location", "verification", body.verification);
     addField("land_location", "remarks", body.remarks);
+    addField("land_location", "admin_verification", body.admin_verification);
   }
 
   // farmer_details
@@ -93,11 +94,7 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
   addField("office_work", "suggested_farmer_phone", body.suggested_farmer_phone);
   addField("office_work", "suggested_village", body.suggested_village);
   addField("office_work", "suggested_mandal", body.suggested_mandal);
-  if(body.keep_in_special_package== null){
-    addField("office_work", "keep_in_special_package", "false");
-  }else{
-    addField("office_work", "keep_in_special_package", body.keep_in_special_package);
-  }
+  addField("office_work", "keep_in_special_package", body.keep_in_special_package);
   addField("office_work", "package_name", body.package_name);
   addField("office_work", "package_remarks", body.package_remarks);
   addField("office_work", "mediator_id", body.mediator_id);
@@ -107,6 +104,9 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
   addField("office_work", "board_end_date", body.board_end_date);
   addField("office_work", "border_latitude", body.border_latitude);
   addField("office_work", "border_longitude", body.border_longitude);
+  addField("office_work", "verified_by", body.verified_by);
+  addField("office_work", "date_of_verification", body.date_of_verification);
+  addField("office_work", "office_status", body.office_status);
   return updates;
 }
 
@@ -480,7 +480,7 @@ const getAllRejectedLandFullDetails = async (req, res) => {
       LEFT JOIN document_media dm ON l.land_id = dm.land_id
       WHERE l.verification = $1
       AND l.status = $2
-      ORDER BY l.created_at DESC, l.land_id DESC;
+      ORDER BY l.verification_date DESC, l.land_id DESC;
   `,
       ["rejected" ,"true"]
     );
@@ -655,7 +655,7 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
     }
 
     // NEW: store verification admin & date + create wallet entry IF NOT EXISTS
-    if (updates.land_location.verification === "verified") {
+    if (updates.land_location.verification === "verified" || updates.land_location.verification === "rejected") {
         const uniqueId = req.user.unique_id;
 
         // Update land_location with verifier info
@@ -1212,9 +1212,9 @@ const getAllFullLandFullDetails = async (req, res) => {
 
     const { district, state, price_per_acres, total_land_price, land_area } = req.query;
 
-    let conditions = [`l.status = $1`];
-    let values = ["true"];
-    let index = 2;
+    let conditions = [`l.status = $1`, `l.verification = $2`];
+    let values = ["true", "verified"];
+    let index = 3;
 
     if (district) {
       conditions.push(`l.district ILIKE $${index++}`);
@@ -1308,6 +1308,7 @@ ORDER BY l.created_at DESC;
         village: row.village,
         location: row.location,
         verification: row.verification,
+        admin_verification: row.admin_verification,
       },
 
       farmer_details: {
@@ -1373,7 +1374,10 @@ ORDER BY l.created_at DESC;
         border_latitude: row.border_latitude,
         border_longitude: row.border_longitude,
         border_photo: (row.border_photo || []).map(p => baseURL + "images/" + p),
-        visitors: row.visitors
+        visitors: row.visitors,
+        verified_by: row.verified_by,
+        date_of_verification: row.date_of_verification,
+        office_status: row.office_status,
       }
     }));
 

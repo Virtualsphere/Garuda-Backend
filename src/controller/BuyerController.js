@@ -21,7 +21,7 @@ const createBuyer= async(req, res)=>{
       phone,
       state,
       district,
-      sectors,
+      mandal,
       near_town_1,
       near_town_2,
       acres,
@@ -35,7 +35,7 @@ const createBuyer= async(req, res)=>{
     const uniqueId = await generateUniqueId(role);
     const result = await pool.query(
       `INSERT INTO buyers 
-        (unique_id, name, phone, state, district, sectors, near_town_1, near_town_2, acres, total_budget, price_per_acres, type_of_soil, remarks)
+        (unique_id, name, phone, state, district, mandal, near_town_1, near_town_2, acres, total_budget, price_per_acres, type_of_soil, remarks)
       VALUES
         ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
       RETURNING *`,
@@ -45,7 +45,7 @@ const createBuyer= async(req, res)=>{
         phone,
         state,
         district,
-        sectors,
+        mandal,
         near_town_1,
         near_town_2,
         acres,
