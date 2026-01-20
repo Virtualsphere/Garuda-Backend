@@ -36,7 +36,12 @@ const getAllAgents = async (req, res) => {
           SELECT STRING_AGG(DISTINCT mandal, ', ')
           FROM agent_preferences ap
           WHERE ap.agent_id = a.agent_id
-        ) as mandals
+        ) as mandals,
+        (
+          SELECT STRING_AGG(DISTINCT village, ', ')
+          FROM agent_preferences ap
+          WHERE ap.agent_id = a.agent_id
+        ) as villages
       FROM agents a
       LEFT JOIN users u ON a.user_id = u.unique_id
       WHERE u.role = 'agent'
