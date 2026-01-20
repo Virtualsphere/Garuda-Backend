@@ -453,24 +453,25 @@ const updatePassword = async (req, res) => {
 
 const updatePasswordForUser = async (req, res) => {
   try {
-    const { newPassword } = req.body;
+    const { identifier, newPassword } = req.body;
 
-    const unique_id= req.user.unique_id;
-
-    if (!newPassword) {
+    if (!identifier || !newPassword) {
       return res.status(400).json({
-        error: "newPassword are required",
+        error: "Identifier (email/phone) and newPassword are required",
       });
     }
 
+    // Find user by email or phone
     const userRes = await pool.query(
-      `SELECT id FROM users WHERE unique_id = $1`,
-      [unique_id]
+      `SELECT id, unique_id FROM users WHERE email = $1 OR phone = $1 LIMIT 1`,
+      [identifier]
     );
 
     if (!userRes.rows.length) {
       return res.status(404).json({ error: "User not found" });
     }
+
+    const { unique_id } = userRes.rows[0];
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
