@@ -8,7 +8,7 @@ const createWalletTable= async()=>{
       unique_id VARCHAR(255),
       date VARCHAR(255),
       total_km VARCHAR(255),
-      amount VARCHAR(255),
+      amount NUMERIC(12,2),
       status VARCHAR(100),
       CONSTRAINT fk_travel_wallet_session
         FOREIGN KEY (session_id)
@@ -24,7 +24,7 @@ const createWalletTable= async()=>{
       unique_id VARCHAR(255),
       varification VARCHAR(100),
       date VARCHAR(255),
-      work_amount VARCHAR(255),
+      work_amount NUMERIC(12,2),
       status VARCHAR(100),
 
       CONSTRAINT fk_land_wallet_land
@@ -41,7 +41,7 @@ const createWalletTable= async()=>{
       unique_id VARCHAR(255),
       varification VARCHAR(100),
       date VARCHAR(255),
-      month_end_amount VARCHAR(255),
+      month_end_amount NUMERIC(12,2),
       status VARCHAR(100),
 
       CONSTRAINT fk_land_month_wallet_land
@@ -58,7 +58,7 @@ const createWalletTable= async()=>{
             unique_id VARCHAR(255),
             varification VARCHAR(100),
             date VARCHAR(255),
-            physical_verification_amount VARCHAR(255),
+            physical_verification_amount NUMERIC(12,2),
             status VARCHAR(100),
 
             CONSTRAINT fk_land_physical_verification_wallet_land
@@ -75,7 +75,7 @@ const createWalletTable= async()=>{
         unique_id VARCHAR(255),
         date VARCHAR(255),
         number_of_posters VARCHAR(255),
-        amount VARCHAR(255),
+        amount NUMERIC(12,2),
         status VARCHAR(255)
         );
     `)
@@ -87,7 +87,7 @@ const createWalletTable= async()=>{
         unique_id VARCHAR(255),
         date VARCHAR(255),
         number_of_post VARCHAR(255),
-        amount VARCHAR(255),
+        amount NUMERIC(12,2),
         status VARCHAR(255)
         );
     `)
@@ -99,7 +99,7 @@ const createWalletTable= async()=>{
         unique_id VARCHAR(255),
         date VARCHAR(255),
         ad_type VARCHAR(255),
-        amount VARCHAR(255),
+        amount NUMERIC(12,2),
         status VARCHAR(255)
         );
     `)

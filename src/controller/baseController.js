@@ -465,8 +465,8 @@ const totalDueAndPendingFieldExecutiveAmount = async (req, res) => {
 
     const result = await pool.query(`
       SELECT
-        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS due_amount,
-        SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) AS paid_amount
+        SUM(CASE WHEN status = 'pending' THEN amount::NUMERIC ELSE 0::NUMERIC END) AS due_amount,
+        SUM(CASE WHEN status = 'approved' THEN amount::NUMERIC ELSE 0::NUMERIC END) AS paid_amount
       FROM (
         SELECT amount, status FROM travel_wallet WHERE unique_id = $1
         UNION ALL
@@ -489,8 +489,8 @@ const totalDueAndPendingRegionalAmount = async (req, res) => {
 
     const result = await pool.query(`
       SELECT
-        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS due_amount,
-        SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) AS paid_amount
+        SUM(CASE WHEN status = 'pending' THEN amount::NUMERIC ELSE 0::NUMERIC END) AS due_amount,
+        SUM(CASE WHEN status = 'approved' THEN amount::NUMERIC ELSE 0::NUMERIC END) AS paid_amount
       FROM (
         SELECT amount, status FROM travel_wallet WHERE unique_id = $1
         UNION ALL
@@ -515,8 +515,8 @@ const totalDueAndPendingMarketingAmount = async (req, res) => {
 
     const result = await pool.query(`
       SELECT
-        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS due_amount,
-        SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) AS paid_amount
+        SUM(CASE WHEN status = 'pending' THEN amount::NUMERIC ELSE 0::NUMERIC END) AS due_amount,
+        SUM(CASE WHEN status = 'approved' THEN amount::NUMERIC ELSE 0::NUMERIC END) AS paid_amount
       FROM (
         SELECT amount, status FROM travel_wallet WHERE unique_id = $1
         UNION ALL
@@ -539,12 +539,11 @@ const totalLandMonthAmount = async (req, res) => {
   try {
     const unique_id = req.user.unique_id;
 
-    const result = await pool.query(
-      `SELECT COALESCE(SUM(month_end_amount),0) AS total_amount
-       FROM land_month_wallet
-       WHERE unique_id = $1 AND status = 'approved'`,
-      [unique_id]
-    );
+    const result = await pool.query(`
+      SELECT COALESCE(SUM(month_end_amount::NUMERIC), 0) AS total_amount
+      FROM land_month_wallet
+      WHERE unique_id = $1 AND status = 'approved'
+    `, [unique_id]);
 
     res.json(result.rows[0]);
   } catch (err) {
