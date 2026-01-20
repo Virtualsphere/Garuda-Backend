@@ -160,10 +160,10 @@ const updateUserDetails = async (req, res) => {
     const workMandalJson= toJsonArray(req.body.work_mandal);
     const workVillageJson= toJsonArray(req.body.work_village);
 
-    dataWork.state= workStateJson;
-    dataWork.district= workDistrictJson;
-    dataWork.mandal= workMandalJson;
-    dataWork.village= workVillageJson;
+    dataWork.work_state= workStateJson;
+    dataWork.work_district= workDistrictJson;
+    dataWork.work_mandal= workMandalJson;
+    dataWork.work_village= workVillageJson;
 
     // Handle image uploads
     if (req.files?.image) {
@@ -451,4 +451,41 @@ const updatePassword = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, updateUserDetails, getUserProfile, getAllUserProfile, updateByAdminUserDetails, deleteUserProfile, updatePassword };
+const updatePasswordForUser = async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+
+    const unique_id= req.user.unique_id;
+
+    if (!newPassword) {
+      return res.status(400).json({
+        error: "newPassword are required",
+      });
+    }
+
+    const userRes = await pool.query(
+      `SELECT id FROM users WHERE unique_id = $1`,
+      [unique_id]
+    );
+
+    if (!userRes.rows.length) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      `UPDATE users SET password = $1 WHERE unique_id = $2`,
+      [hashedPassword, unique_id]
+    );
+
+    res.status(200).json({
+      message: "✅ Password reset successfully",
+    });
+  } catch (err) {
+    console.error("Reset Password Error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+module.exports = { registerUser, updateUserDetails, getUserProfile, getAllUserProfile, updateByAdminUserDetails, deleteUserProfile, updatePassword, updatePasswordForUser };

@@ -459,6 +459,100 @@ const getAllAdsWallet = async (req, res) => {
   }
 };
 
+const totalDueAndPendingFieldExecutiveAmount = async (req, res) => {
+  try {
+    const unique_id = req.user.unique_id;
+
+    const result = await pool.query(`
+      SELECT
+        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS due_amount,
+        SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) AS paid_amount
+      FROM (
+        SELECT amount, status FROM travel_wallet WHERE unique_id = $1
+        UNION ALL
+        SELECT work_amount AS amount, status FROM land_wallet WHERE unique_id = $1
+        UNION ALL
+        SELECT month_end_amount AS amount, status FROM land_month_wallet WHERE unique_id = $1
+      ) t
+    `, [unique_id]);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const totalDueAndPendingRegionalAmount = async (req, res) => {
+  try {
+    const unique_id = req.user.unique_id;
+
+    const result = await pool.query(`
+      SELECT
+        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS due_amount,
+        SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) AS paid_amount
+      FROM (
+        SELECT amount, status FROM travel_wallet WHERE unique_id = $1
+        UNION ALL
+        SELECT work_amount AS amount, status FROM land_wallet WHERE unique_id = $1
+        UNION ALL
+        SELECT month_end_amount AS amount, status FROM land_month_wallet WHERE unique_id = $1
+        UNION ALL
+        SELECT physical_verification_amount AS amount, status FROM physical_verification_wallet WHERE unique_id = $1
+      ) t
+    `, [unique_id]);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const totalDueAndPendingMarketingAmount = async (req, res) => {
+  try {
+    const unique_id = req.user.unique_id;
+
+    const result = await pool.query(`
+      SELECT
+        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS due_amount,
+        SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) AS paid_amount
+      FROM (
+        SELECT amount, status FROM travel_wallet WHERE unique_id = $1
+        UNION ALL
+        SELECT amount, status FROM poster_wallet WHERE unique_id = $1
+        UNION ALL
+        SELECT amount, status FROM ads_wallet WHERE unique_id = $1
+        UNION ALL
+        SELECT amount, status FROM job_post_wallet WHERE unique_id = $1
+      ) t
+    `, [unique_id]);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const totalLandMonthAmount = async (req, res) => {
+  try {
+    const unique_id = req.user.unique_id;
+
+    const result = await pool.query(
+      `SELECT COALESCE(SUM(month_end_amount),0) AS total_amount
+       FROM land_month_wallet
+       WHERE unique_id = $1 AND status = 'approved'`,
+      [unique_id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 module.exports= {
     getTravelWallet,
     getLandWallet,
@@ -477,5 +571,9 @@ module.exports= {
     getPosterWallet,
     getAllPosterWallet,
     getAllJobPostWallet,
-    getAllAdsWallet
+    getAllAdsWallet,
+    totalDueAndPendingFieldExecutiveAmount,
+    totalDueAndPendingMarketingAmount,
+    totalDueAndPendingRegionalAmount,
+    totalLandMonthAmount
 }

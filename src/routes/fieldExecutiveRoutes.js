@@ -58,4 +58,7 @@ router.get("/land-wallet", baseController.getLandWallet);
 router.get("/land-month-wallet", baseController.getLandMonthWallet);
 router.get('/weeky/land/data', sessionController.getWeeklyLandStats);
 
+router.get('/due/paid/amount', baseController.totalDueAndPendingFieldExecutiveAmount);
+router.get('paid/land/month/wallet', baseController.totalLandMonthAmount);
+
 module.exports = router;

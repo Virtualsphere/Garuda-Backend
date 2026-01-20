@@ -13,7 +13,7 @@ const createTables = async (req, res) => {
         status VARCHAR(50),
         verification VARCHAR(50) DEFAULT 'pending',
         remarks TEXT,
-        created_at DATE DEFAULT CURRENT_DATE,
+        created_at TIMESTAMP,
         verification_date TIMESTAMP,
         verification_unique_id VARCHAR(255),
         land_code VARCHAR(255),

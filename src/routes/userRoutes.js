@@ -22,6 +22,7 @@ router.get('/verified/land/purchase', verifyToken, landController.getAllVerfiedL
 router.get('/details', verifyToken, registerController.getUserProfile);
 router.put('/details', verifyToken, userDetailsUpdate, registerController.updateUserDetails);
 router.get('/verified/land/:id', landController.getVerifiedLandDetailsById);
+router.put('/reset/password', registerController.updatePasswordForUser);
 router.post('/land-purchase', verifyToken, landPurchaseRequestController.createLandPurchase);
 router.get('/land-purchase', verifyToken, landPurchaseRequestController.getLandPurchaseDetail);
 router.get('/banner', bannerController.getBanner);

@@ -129,32 +129,7 @@ const getRegionalSessions = async (req, res) => {
     const unique_id = req.user.unique_id;
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
 
-    const landRes = await pool.query(
-      `
-      SELECT ll.land_id, ll.created_at, ll.status, ll.verification_date, fd.name AS farmer_name
-      FROM land_location ll
-      LEFT JOIN farmer_details fd ON fd.land_id = ll.land_id
-      WHERE ll.verification_unique_id = $1
-      `,
-      [unique_id]
-    );
-
-    const landMap = {};
-    const verifyMap = {};
-
-    landRes.rows.forEach(r => {
-      if (r.created_at) {
-        const d = r.created_at.toISOString().split("T")[0];
-        landMap[d] = r.farmer_name;
-      }
-      if (r.verification_date) {
-        const d = r.verification_date.toISOString().split("T")[0];
-        verifyMap[d] = true;
-      }
-    });
-
-    const sessionRes = await pool.query(
-      `
+    const result = await pool.query(`
       SELECT 
         s.id AS session_id,
         s.created_at,
@@ -163,27 +138,33 @@ const getRegionalSessions = async (req, res) => {
         e.end_km,
         e.end_image,
         e.transport_charges,
-        e.ticket_image
+        e.ticket_image,
+        ll.status AS land_status,
+        ll.verification_date,
+        fd.name AS farmer_name
       FROM session s
       LEFT JOIN end_session e ON e.session_id = s.id
+      LEFT JOIN land_location ll 
+        ON ll.verification_unique_id = s.unique_id
+       AND DATE(ll.created_at) = DATE(s.created_at)
+      LEFT JOIN farmer_details fd 
+        ON fd.land_id = ll.land_id
       WHERE s.unique_id = $1
       ORDER BY s.id DESC, e.id ASC
-      `,
-      [unique_id]
-    );
+    `, [unique_id]);
 
     const sessionMap = {};
 
-    sessionRes.rows.forEach(row => {
+    result.rows.forEach(row => {
       const date = row.created_at.toISOString().split("T")[0];
 
       if (!sessionMap[row.session_id]) {
         sessionMap[row.session_id] = {
           session_id: row.session_id,
           date,
-          land_status: !!landMap[date],
-          verification_status: !!verifyMap[date],
-          farmer_name: landMap[date] || null,
+          land_status: !!row.land_status,
+          verification_status: !!row.verification_date,
+          farmer_name: row.farmer_name || null,
           starting_km: row.starting_km,
           starting_image: row.starting_image
             ? baseURL + "images/" + row.starting_image
@@ -202,10 +183,7 @@ const getRegionalSessions = async (req, res) => {
       }
     });
 
-    res.json({
-      message: "✔ Sessions fetched",
-      data: Object.values(sessionMap)
-    });
+    res.json({ message: "✔ Sessions fetched", data: Object.values(sessionMap) });
 
   } catch (e) {
     console.error(e);
@@ -282,27 +260,8 @@ const getAgentSessions = async (req, res) => {
     const unique_id = req.user.unique_id;
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
 
-    const landRes = await pool.query(
-      `SELECT ll.created_at, ll.status, fd.name AS farmer_name
-       FROM land_location ll
-       LEFT JOIN farmer_details fd ON fd.land_id = ll.land_id
-       WHERE ll.unique_id = $1`,
-      [unique_id]
-    );
-
-    const landMap = {};
-    landRes.rows.forEach(r => {
-      if (r.created_at) {
-        const d = r.created_at.toISOString().split("T")[0];
-        landMap[d] = {
-          farmer_name: r.farmer_name || null,
-          status: r.status === "true"
-        };
-      }
-    });
-
-    const sessionRes = await pool.query(
-      `SELECT 
+    const result = await pool.query(`
+      SELECT 
         s.id AS session_id,
         s.created_at,
         s.starting_time,
@@ -312,26 +271,31 @@ const getAgentSessions = async (req, res) => {
         e.end_km,
         e.end_image,
         e.transport_charges,
-        e.ticket_image
+        e.ticket_image,
+        ll.status AS land_status,
+        fd.name AS farmer_name
       FROM session s
       LEFT JOIN end_session e ON e.session_id = s.id
+      LEFT JOIN land_location ll 
+        ON ll.unique_id = s.unique_id 
+       AND DATE(ll.created_at) = DATE(s.created_at)
+      LEFT JOIN farmer_details fd 
+        ON fd.land_id = ll.land_id
       WHERE s.unique_id = $1
-      ORDER BY s.id DESC, e.id ASC`,
-      [unique_id]
-    );
+      ORDER BY s.id DESC, e.id ASC
+    `, [unique_id]);
 
     const sessionMap = {};
 
-    sessionRes.rows.forEach(row => {
+    result.rows.forEach(row => {
       const date = row.created_at.toISOString().split("T")[0];
-      const land = landMap[date] || {};
 
       if (!sessionMap[row.session_id]) {
         sessionMap[row.session_id] = {
           session_id: row.session_id,
           date,
-          status: land.status || false,
-          farmer_name: land.farmer_name || null,
+          status: row.land_status === "true",
+          farmer_name: row.farmer_name || null,
           starting_time: row.starting_time,
           starting_km: row.starting_km,
           starting_image: row.starting_image
@@ -352,10 +316,7 @@ const getAgentSessions = async (req, res) => {
       }
     });
 
-    res.json({
-      message: "✔ Sessions fetched",
-      data: Object.values(sessionMap)
-    });
+    res.json({ message: "✔ Sessions fetched", data: Object.values(sessionMap) });
 
   } catch (e) {
     console.error(e);
