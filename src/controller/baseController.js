@@ -346,6 +346,66 @@ const updateLandMonthWallet = async (req, res) => {
   }
 };
 
+const updatePosterWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await dynamicUpdate("poster_wallet", id, req.body);
+
+    if (!updated)
+      return res
+        .status(404)
+        .json({ error: "Poster wallet record not found" });
+
+    res.status(200).json({
+      message: "Poster wallet updated successfully",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Update Poster Wallet Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const updateJobPostWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await dynamicUpdate("job_post_wallet", id, req.body);
+
+    if (!updated)
+      return res
+        .status(404)
+        .json({ error: "Job post wallet record not found" });
+
+    res.status(200).json({
+      message: "Job post wallet updated successfully",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Update Job Post Wallet Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const updateAdsWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await dynamicUpdate("ads_wallet", id, req.body);
+
+    if (!updated)
+      return res
+        .status(404)
+        .json({ error: "Ads wallet record not found" });
+
+    res.status(200).json({
+      message: "Ads wallet updated successfully",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Update Ads Wallet Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 const updatePhysicalVerificationWallet= async (req, res)=>{
   try {
     const { id } = req.params;
@@ -574,5 +634,8 @@ module.exports= {
     totalDueAndPendingFieldExecutiveAmount,
     totalDueAndPendingMarketingAmount,
     totalDueAndPendingRegionalAmount,
-    totalLandMonthAmount
+    totalLandMonthAmount,
+    updateAdsWallet,
+    updateJobPostWallet,
+    updatePosterWallet
 }

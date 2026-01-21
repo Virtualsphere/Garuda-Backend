@@ -58,6 +58,6 @@ router.get("/weekly/land/data", sessionController.getWeeklyLandStats);
 router.get("/weekly/land/verification/data", sessionController.getWeeklyVerifiedLandStats);
 
 router.get('/due/paid/amount', baseController.totalDueAndPendingRegionalAmount);
-router.get('paid/land/month', baseController.totalLandMonthAmount);
+router.get('/paid/land/month', baseController.totalLandMonthAmount);
 
 module.exports = router;

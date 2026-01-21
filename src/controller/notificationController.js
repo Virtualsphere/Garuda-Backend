@@ -71,4 +71,29 @@ const getNotification = async (req, res) => {
   }
 };
 
-module.exports= { createNotification, getNotification, updateNotification }
+const deleteNotification = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `DELETE FROM notification 
+       WHERE id = $1
+       RETURNING *;`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    res.status(200).json({
+      message: '✅ Notification deleted successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Notification Error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports= { createNotification, getNotification, updateNotification, deleteNotification }

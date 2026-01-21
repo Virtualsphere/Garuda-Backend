@@ -77,6 +77,9 @@ router.put("/travel/wallet/:id", baseController.updateTravelWallet);
 router.put("/land/wallet/:id", baseController.updateLandWallet);
 router.put("/land/month/wallet/:id", baseController.updateLandMonthWallet);
 router.put("/physical/wallet/:id", baseController.updatePhysicalVerificationWallet);
+router.put("/poster/wallet/:id", baseController.updatePosterWallet);
+router.put("/job/wallet/:id", baseController.updateJobPostWallet);
+router.put("/ads/wallet/:id", baseController.updateAdsWallet);
 
 router.get("/buyers", buyerController.getBuyers);
 router.post("/buyers", buyerController.createBuyer);
@@ -157,6 +160,7 @@ router.get('/banner', bannerDetail, bannerController.getBanner);
 
 router.get('/notification', notificationController.getNotification);
 router.put('/notification/:id', notificationController.updateNotification);
+router.delete('/notification/:id', notificationController.deleteNotification);
 
 router.get('/purchase/land/details', purchaseLandController.getAllLandPurchaseDetail);
 router.put('/purchase/land', purchaseLandController.updateLandPurchaseDetail);
