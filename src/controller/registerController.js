@@ -237,6 +237,16 @@ const updateByAdminUserDetails = async (req, res) => {
       if (personalAssignmentFields.includes(key)) dataPersonalAssignment[key] = body[key];
     }
 
+    const workStateJson= toJsonArray(req.body.work_state);
+    const workDistrictJson= toJsonArray(req.body.work_district);
+    const workMandalJson= toJsonArray(req.body.work_mandal);
+    const workVillageJson= toJsonArray(req.body.work_village);
+
+    dataWork.work_state= workStateJson;
+    dataWork.work_district= workDistrictJson;
+    dataWork.work_mandal= workMandalJson;
+    dataWork.work_village= workVillageJson;
+
     // Handle image uploads
     if (req.files?.image) {
       dataUsers.image = req.files.image[0].filename || null;

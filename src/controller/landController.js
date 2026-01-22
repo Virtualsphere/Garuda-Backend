@@ -399,7 +399,8 @@ const getAllUniverfiedLandFullDetails = async (req, res) => {
         village: row.village,
         location: row.location,
         status: row.status,
-        verification: row.verification
+        verification: row.verification,
+        created_at: row.created_at
       },
 
       farmer_details: {
@@ -502,7 +503,8 @@ const getAllRejectedLandFullDetails = async (req, res) => {
         location: row.location,
         status: row.status,
         verification: row.verification,
-        remarks: row.remarks
+        remarks: row.remarks,
+        created_at: row.created_at
       },
 
       farmer_details: {
@@ -785,6 +787,7 @@ const getAllLandFullDetails = async (req, res) => {
         village: row.village,
         location: row.location,
         status: row.status,
+        created_at: row.created_at
       },
 
       farmer_details: {
@@ -998,6 +1001,7 @@ const getAllLandFullDraftDetails = async (req, res) => {
         village: row.village,
         location: row.location,
         status: row.status,
+        created_at: row.created_at
       },
 
       farmer_details: {
@@ -1145,6 +1149,7 @@ const getLandData = async (req, res) => {
         village: row.village,
         location: row.location,
         verification: row.verification,
+        created_at: row.created_at
       },
 
       farmer_details: {
@@ -1356,6 +1361,7 @@ const getAllFullLandFullDetails = async (req, res) => {
         verification: row.verification,
         admin_verification: row.admin_verification,
         recheck: row.recheck,
+        created_at: row.created_at,
       },
 
       farmer_details: {
@@ -1471,7 +1477,7 @@ const getAllVerfiedLandFullDetails = async (req, res) => {
       LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
       LEFT JOIN dispute_details d ON l.land_id = d.land_id
       LEFT JOIN document_media dm ON l.land_id = dm.land_id
-      WHERE l.verification = $1
+      WHERE l.admin_verification = $1
         AND l.status = $2
     `;
 
@@ -1510,6 +1516,7 @@ const getAllVerfiedLandFullDetails = async (req, res) => {
         location: row.location,
         status: row.status,
         verification: row.verification,
+        created_at: row.created_at,
       },
 
       farmer_details: {
@@ -1622,7 +1629,8 @@ const getVerifiedLandDetailsById = async (req, res) => {
         village: row.village,
         location: row.location,
         status: row.status,
-        verification: row.verification
+        verification: row.verification,
+        created_at: row.created_at
       },
 
       farmer_details: {
@@ -1760,6 +1768,116 @@ const getLandPurchaseSummary = async (req, res) => {
   }
 };
 
+const getAllVerfiedLandFullDetailsForReport = async (req, res) => {
+  try {
+    const baseURL = `${req.protocol}://${req.get("host")}/public/`;
+
+    let query = `
+      SELECT 
+        l.*,
+        f.*,
+        ld.*,
+        gps.*,
+        d.*,
+        dm.*
+      FROM land_location l
+      LEFT JOIN farmer_details f ON l.land_id = f.land_id
+      LEFT JOIN land_details ld ON l.land_id = ld.land_id
+      LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
+      LEFT JOIN dispute_details d ON l.land_id = d.land_id
+      LEFT JOIN document_media dm ON l.land_id = dm.land_id
+      WHERE l.verification = $1
+        AND l.status = $2
+    `;
+
+    const values = ["verified", "true"];
+
+    query += ` ORDER BY l.created_at DESC, l.land_id DESC;`;
+
+    const result = await pool.query(query, values);
+
+    if (!result.rows.length) {
+      return res.status(200).json({ message: "No land records found" });
+    }
+
+    const response = result.rows.map((row) => ({
+      land_id: row.land_id,
+
+      land_location: {
+        unique_id: row.unique_id,
+        state: row.state,
+        district: row.district,
+        mandal: row.mandal,
+        village: row.village,
+        location: row.location,
+        status: row.status,
+        verification: row.verification,
+        created_at: row.created_at,
+      },
+
+      farmer_details: {
+        name: row.name,
+        phone: row.phone,
+        whatsapp_number: row.whatsapp_number,
+        literacy: row.literacy,
+        age_group: row.age_group,
+        nature: row.nature,
+        land_ownership: row.land_ownership,
+        mortgage: row.mortgage,
+      },
+
+      land_details: {
+        land_area: row.land_area,
+        guntas: row.guntas,
+        price_per_acre: row.price_per_acre,
+        total_land_price: row.total_land_price,
+        passbook_photo: row.passbook_photo
+          ? baseURL + "images/" + row.passbook_photo
+          : null,
+        land_type: row.land_type,
+        water_source: row.water_source,
+        garden: row.garden,
+        shed_details: row.shed_details,
+        farm_pond: row.farm_pond,
+        residental: row.residental,
+        fencing: row.fencing,
+      },
+
+      gps_tracking: {
+        road_path: row.road_path,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        land_border: row.land_border
+          ? baseURL + "images/" + row.land_border
+          : null,
+      },
+
+      dispute_details: {
+        dispute_type: row.dispute_type,
+        siblings_involve_in_dispute: row.siblings_involve_in_dispute,
+        path_to_land: row.path_to_land,
+      },
+
+      document_media: {
+        land_photo: (row.land_photo || []).map(
+          (p) => baseURL + "images/" + p
+        ),
+        land_video: (row.land_video || []).map(
+          (v) => baseURL + "videos/" + v
+        ),
+      },
+    }));
+
+    res.status(200).json({
+      message: "✔ All land full details fetched",
+      data: response,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch land details" });
+  }
+};
+
 module.exports= {
     getAllUniverfiedLandFullDetails,
     getAllRejectedLandFullDetails,
@@ -1773,5 +1891,6 @@ module.exports= {
     getAllVerfiedLandFullDetails,
     getVerifiedLandDetailsById,
     deleteLandDetails,
-    getLandPurchaseSummary
+    getLandPurchaseSummary,
+    getAllVerfiedLandFullDetailsForReport
 }

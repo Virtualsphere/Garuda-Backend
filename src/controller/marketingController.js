@@ -462,6 +462,7 @@ const getPosterSticking = async (req, res) => {
           district: row.district,
           town: row.town,
           mandal: row.mandal,
+          created_at: row.created_at,
           shops: [],
         };
       }
@@ -473,6 +474,7 @@ const getPosterSticking = async (req, res) => {
           shop_type: row.shop_type,
           latitude: row.latitude,
           longitude: row.longitude,
+          created_at: row.created_at,
           shop_photo: row.shop_photo
             ? baseURL + "images/" + row.shop_photo
             : null,
@@ -523,6 +525,7 @@ const getJobPosting = async (req, res) => {
           district: row.district,
           town: row.town,
           mandal: row.mandal,
+          created_at: row.created_at,
           postings: [],
         };
       }
@@ -531,6 +534,7 @@ const getJobPosting = async (req, res) => {
         data[row.job_location_id].postings.push({
           latitude: row.latitude,
           longitude: row.longitude,
+          created_at: row.created_at,
           place_photo: row.place_photo
             ? baseURL + "images/" + row.place_photo
             : null,
@@ -575,6 +579,7 @@ const getTVAdvertising = async (req, res) => {
       if (!data[row.batch_id]) {
         data[row.batch_id] = {
           batch_id: row.batch_id,
+          created_at: row.created_at,
           contacts: [],
         };
       }
@@ -589,6 +594,7 @@ const getTVAdvertising = async (req, res) => {
           mandal: row.mandal,
           latitude: row.latitude,
           longitude: row.longitude,
+          created_at: row.created_at,
           photo: row.photo
             ? baseURL + "images/" + row.photo
             : null,
@@ -630,6 +636,7 @@ const getBannerAdvertising = async (req, res) => {
       if (!data[row.batch_id]) {
         data[row.batch_id] = {
           batch_id: row.batch_id,
+          created_at: row.created_at,
           contacts: [],
         };
       }
@@ -644,6 +651,7 @@ const getBannerAdvertising = async (req, res) => {
           mandal: row.mandal,
           latitude: row.latitude,
           longitude: row.longitude,
+          created_at: row.created_at,
           photo: row.photo
             ? baseURL + "images/" + row.photo
             : null,

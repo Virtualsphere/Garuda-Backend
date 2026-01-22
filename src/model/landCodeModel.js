@@ -13,7 +13,7 @@ const createLandCode = async () => {
             farmer_name VARCHAR(100),
             farmer_phone VARCHAR(20),
             village_name VARCHAR(100),
-            status VARCHAR(50) DEFAULT 'Available',
+            status VARCHAR(50) DEFAULT 'Inactive',
             allotted_date TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

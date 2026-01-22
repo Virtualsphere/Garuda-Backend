@@ -31,6 +31,8 @@ const notificationController= require("../controller/notificationController");
 
 const purchaseLandController= require("../controller/landPurchaseController");
 
+const dashBoardController= require("../controller/dashBoardController");
+
 router.use(verifyToken);
 
 const userDetailsUpdate= upload.fields([
@@ -164,5 +166,11 @@ router.delete('/notification/:id', notificationController.deleteNotification);
 
 router.get('/purchase/land/details', purchaseLandController.getAllLandPurchaseDetail);
 router.put('/purchase/land', purchaseLandController.updateLandPurchaseDetail);
+
+router.get('/budget', dashBoardController.budget);
+router.get('/active-user', dashBoardController.activeUsers);
+router.get('/field-productivity', dashBoardController.fieldProductivity);
+router.get('/montly/budget', dashBoardController.monthlyBudgetByYear);
+router.get('/land/report', landController.getAllVerfiedLandFullDetailsForReport);
 
 module.exports = router;
