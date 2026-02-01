@@ -41,7 +41,7 @@ const personalAssignmentFields = ["report_to", "assigned_employee"];
 const cleanData = (obj) => {
   Object.keys(obj).forEach((key) => {
     if (obj[key] === undefined || obj[key] === null || obj[key] === "") {
-      delete obj[key];   // remove empty fields so DB keeps old value
+      delete obj[key];
     }
   });
   return obj;
@@ -66,7 +66,6 @@ const upsert = async (table, uniqueId, data) => {
   );
 };
 
-// ✅ Generate unique ID (still keep this format for tracking)
 const generateUniqueId = async (role) => {
   const result = await pool.query(
     `SELECT unique_id FROM users WHERE unique_id LIKE $1 ORDER BY id DESC LIMIT 1`,
@@ -80,7 +79,6 @@ const generateUniqueId = async (role) => {
   return `${role}${numberPart + 1}`;
 };
 
-// ✅ Register user
 const registerUser = async (req, res) => {
   try {
     const { name, email, phone, password, role, bloodGroup } = req.body;
@@ -144,7 +142,6 @@ const updateUserDetails = async (req, res) => {
     let dataWork = {};
     let dataVehicle = {};
 
-    // Assign body fields
     for (let key in body) {
       if (userFields.includes(key)) dataUsers[key] = body[key];
       if (addressFields.includes(key)) dataAddress[key] = body[key];
@@ -165,7 +162,6 @@ const updateUserDetails = async (req, res) => {
     dataWork.work_mandal= workMandalJson;
     dataWork.work_village= workVillageJson;
 
-    // Handle image uploads
     if (req.files?.image) {
       dataUsers.image = req.files.image[0].filename || null;
     }
@@ -192,8 +188,6 @@ const updateUserDetails = async (req, res) => {
     dataWork = cleanData(dataWork);
     dataVehicle = cleanData(dataVehicle);
 
-
-    // UPSERT for each section
     await upsert("users", uniqueId, dataUsers);
     await upsert("address", uniqueId, dataAddress);
     await upsert("aadhar_card", uniqueId, dataAadhar);
@@ -225,7 +219,6 @@ const updateByAdminUserDetails = async (req, res) => {
     let dataVehicle = {};
     let dataPersonalAssignment= {};
 
-    // Assign body fields
     for (let key in body) {
       if (userFields.includes(key)) dataUsers[key] = body[key];
       if (addressFields.includes(key)) dataAddress[key] = body[key];
@@ -247,7 +240,6 @@ const updateByAdminUserDetails = async (req, res) => {
     dataWork.work_mandal= workMandalJson;
     dataWork.work_village= workVillageJson;
 
-    // Handle image uploads
     if (req.files?.image) {
       dataUsers.image = req.files.image[0].filename || null;
     }
@@ -275,7 +267,6 @@ const updateByAdminUserDetails = async (req, res) => {
     dataVehicle = cleanData(dataVehicle);
     dataPersonalAssignment= cleanData(dataPersonalAssignment);
 
-    // UPSERT for each section
     await upsert("users", uniqueId, dataUsers);
     await upsert("address", uniqueId, dataAddress);
     await upsert("aadhar_card", uniqueId, dataAadhar);
@@ -338,7 +329,7 @@ const getUserProfile = async (req, res) => {
       aadhar: aadharData,
       salary_package: salary.rows[0] || null,
       bank_account: bank.rows[0] || null,
-      work_location: work.rows[0] || null,   // JSONB auto becomes array
+      work_location: work.rows[0] || null,
       vehicle_information: vehicle.rows[0] || null,
     });
   } catch (err) {
@@ -368,7 +359,7 @@ const getAllUserProfile = async (req, res) => {
       pool.query(`SELECT * FROM aadhar_card`),
       pool.query(`SELECT * FROM salary_package`),
       pool.query(`SELECT * FROM bank_account`),
-      pool.query(`SELECT * FROM work_location`),   // JSONB fields auto parsed
+      pool.query(`SELECT * FROM work_location`),
       pool.query(`SELECT * FROM vehicle_information`),
       pool.query(`SELECT * FROM personal_assignment`),
     ]);
@@ -386,7 +377,7 @@ const getAllUserProfile = async (req, res) => {
       aadhar: aadharData,
       salary_package: salary.rows,
       bank_account: bank.rows,
-      work_location: work.rows,   // work_state, work_district etc are real arrays now
+      work_location: work.rows,
       vehicle_information: vehicle.rows,
       personal_assignment: assignment.rows,
     });
@@ -471,7 +462,6 @@ const updatePasswordForUser = async (req, res) => {
       });
     }
 
-    // Find user by email or phone
     const userRes = await pool.query(
       `SELECT id, unique_id FROM users WHERE email = $1 OR phone = $1 LIMIT 1`,
       [identifier]

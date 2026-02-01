@@ -116,7 +116,6 @@ const getAgentById = async (req, res) => {
   try {
     const { agentId } = req.params;
 
-    // Get agent details
     const agentQuery = `
       SELECT 
         a.*,
@@ -137,7 +136,6 @@ const getAgentById = async (req, res) => {
       return res.status(404).json({ error: "Agent not found" });
     }
 
-    // Get preferences
     const prefQuery = `
       SELECT * FROM agent_preferences 
       WHERE agent_id = $1
@@ -146,7 +144,6 @@ const getAgentById = async (req, res) => {
 
     const prefResult = await pool.query(prefQuery, [agentId]);
 
-    // Get attached lands count and total worth
     const landStatsQuery = `
       SELECT 
         COUNT(*) as attached_lands_count,
@@ -194,7 +191,6 @@ const createAgent = async (req, res) => {
       attach_lands
     } = req.body;
 
-    // Check if user exists and is an agent
     const userCheck = await client.query(
       'SELECT unique_id, name, phone, email FROM users WHERE unique_id = $1 AND role = $2',
       [user_id, 'agent']
@@ -205,10 +201,8 @@ const createAgent = async (req, res) => {
       return res.status(400).json({ error: "User not found or not an agent" });
     }
 
-    // Generate agent ID
     const agentId = `AGENT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Calculate total land worth for attached lands
     let totalLandWorth = 0;
     if (attach_lands && attach_lands.length > 0) {
       const landWorthQuery = `
@@ -220,7 +214,6 @@ const createAgent = async (req, res) => {
       totalLandWorth = parseFloat(worthResult.rows[0]?.total) || 0;
     }
 
-    // Create agent record
     const agentQuery = `
       INSERT INTO agents (
         agent_id,
@@ -242,7 +235,6 @@ const createAgent = async (req, res) => {
       'active'
     ]);
 
-    // Insert preferences
     if (preferred_districts && preferred_districts.length > 0) {
       for (const district of preferred_districts) {
         const mandalsForDistrict = preferred_mandals[district] || [];
@@ -273,7 +265,6 @@ const createAgent = async (req, res) => {
       }
     }
 
-    // Attach lands
     if (attach_lands && attach_lands.length > 0) {
       for (const landId of attach_lands) {
         await client.query(
@@ -315,7 +306,6 @@ const updateAgent = async (req, res) => {
       attach_lands
     } = req.body;
 
-    // Check if agent exists
     const agentCheck = await client.query(
       'SELECT agent_id FROM agents WHERE agent_id = $1',
       [agentId]
@@ -326,7 +316,6 @@ const updateAgent = async (req, res) => {
       return res.status(404).json({ error: "Agent not found" });
     }
 
-    // Calculate total land worth for attached lands
     let totalLandWorth = 0;
     if (attach_lands && attach_lands.length > 0) {
       const landWorthQuery = `
@@ -338,7 +327,6 @@ const updateAgent = async (req, res) => {
       totalLandWorth = parseFloat(worthResult.rows[0]?.total) || 0;
     }
 
-    // Update agent record
     const agentQuery = `
       UPDATE agents 
       SET 
@@ -357,13 +345,11 @@ const updateAgent = async (req, res) => {
       agentId
     ]);
 
-    // Clear existing preferences
     await client.query(
       'DELETE FROM agent_preferences WHERE agent_id = $1',
       [agentId]
     );
 
-    // Insert new preferences
     if (preferred_districts && preferred_districts.length > 0) {
       for (const district of preferred_districts) {
         const mandalsForDistrict = preferred_mandals[district] || [];
@@ -394,13 +380,11 @@ const updateAgent = async (req, res) => {
       }
     }
 
-    // Clear existing land attachments
     await client.query(
       'DELETE FROM agent_land_attachments WHERE agent_id = $1',
       [agentId]
     );
 
-    // Attach new lands
     if (attach_lands && attach_lands.length > 0) {
       for (const landId of attach_lands) {
         await client.query(
@@ -430,7 +414,6 @@ const deleteAgent = async (req, res) => {
   try {
     const { agentId } = req.params;
 
-    // Soft delete - update status to inactive
     const result = await pool.query(
       `DELETE FROM agents 
        WHERE agent_id = $1 
@@ -515,7 +498,6 @@ const getAvailableLands = async (req, res) => {
 
     const result = await pool.query(query, values);
 
-    // Format the response
     const formattedLands = result.rows.map(land => ({
       land_id: land.land_id,
       display: `${land.village}, ${land.mandal}, ${land.district} - ¥${land.total_land_price}`,

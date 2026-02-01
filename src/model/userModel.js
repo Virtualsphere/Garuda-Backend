@@ -1,7 +1,7 @@
 const pool = require("../db/db");
 
 const createUserTable = async () => {
-    await pool.query(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       unique_id VARCHAR(255) UNIQUE NOT NULL,

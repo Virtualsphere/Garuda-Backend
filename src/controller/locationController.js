@@ -10,7 +10,6 @@ const getStates = async (req, res) => {
     }
 };
 
-// Add single state
 const addState = async (req, res) => {
     const { code, name } = req.body;
     
@@ -22,7 +21,7 @@ const addState = async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) {
         console.error(err);
-        if (err.code === '23505') { // unique violation
+        if (err.code === '23505') {
             res.status(400).json({ error: 'State code or name already exists' });
         } else {
             res.status(500).json({ error: 'Failed to add state' });
@@ -30,9 +29,8 @@ const addState = async (req, res) => {
     }
 };
 
-// Add multiple states (bulk insert)
 const addMultipleStates = async (req, res) => {
-    const { states } = req.body; // states: [{code: 'AP', name: 'Andhra Pradesh'}, ...]
+    const { states } = req.body;
     
     try {
         const values = states.map(s => `('${s.code}', '${s.name}')`).join(',');
@@ -45,11 +43,6 @@ const addMultipleStates = async (req, res) => {
     }
 };
 
-// ============================
-// 2. DISTRICT OPERATIONS
-// ============================
-
-// Get districts by state
 const getDistrictsByState = async (req, res) => {
     const { stateId } = req.params;
     
@@ -65,7 +58,6 @@ const getDistrictsByState = async (req, res) => {
     }
 };
 
-// Add district to state
 const addDistrict = async (req, res) => {
     const { state_id, code, name } = req.body;
     
@@ -85,7 +77,6 @@ const addDistrict = async (req, res) => {
     }
 };
 
-// Add multiple districts (bulk)
 const addMultipleDistricts = async (req, res) => {
     const { state_id, districts } = req.body;
     
@@ -118,11 +109,6 @@ const addMultipleDistricts = async (req, res) => {
     }
 };
 
-// ============================
-// 3. MANDAL OPERATIONS
-// ============================
-
-// Get mandals by district
 const getMandalsByDistrict = async (req, res) => {
     const { districtId } = req.params;
     
@@ -138,7 +124,6 @@ const getMandalsByDistrict = async (req, res) => {
     }
 };
 
-// Add mandal to district
 const addMandal = async (req, res) => {
     const { district_id, name } = req.body;
     
@@ -158,7 +143,6 @@ const addMandal = async (req, res) => {
     }
 };
 
-// Add multiple mandals (bulk)
 const addMultipleMandals = async (req, res) => {
     const { district_id, mandals } = req.body; // mandals: ["Mandal 1", "Mandal 2", ...]
     
@@ -191,11 +175,6 @@ const addMultipleMandals = async (req, res) => {
     }
 };
 
-// ============================
-// 4. SECTOR OPERATIONS
-// ============================
-
-// Get sectors by district
 const getSectorsByDistrict = async (req, res) => {
     const { districtId } = req.params;
     
@@ -211,7 +190,6 @@ const getSectorsByDistrict = async (req, res) => {
     }
 };
 
-// Add sector to district
 const addSector = async (req, res) => {
     const { district_id, code, name } = req.body;
     
@@ -231,7 +209,6 @@ const addSector = async (req, res) => {
     }
 };
 
-// Add multiple sectors (bulk)
 const addMultipleSectors = async (req, res) => {
     const { district_id, sectors } = req.body; // sectors: [{code: 'MA', name: 'Mandal A'}, ...]
     
@@ -264,11 +241,6 @@ const addMultipleSectors = async (req, res) => {
     }
 };
 
-// ============================
-// 5. TOWN OPERATIONS
-// ============================
-
-// Get towns by district
 const getTownsByDistrict = async (req, res) => {
     const { districtId } = req.params;
     
@@ -284,7 +256,6 @@ const getTownsByDistrict = async (req, res) => {
     }
 };
 
-// Add town to district
 const addTown = async (req, res) => {
     const { district_id, name } = req.body;
     
@@ -304,9 +275,8 @@ const addTown = async (req, res) => {
     }
 };
 
-// Add multiple towns (bulk)
 const addMultipleTowns = async (req, res) => {
-    const { district_id, towns } = req.body; // towns: ["Town 1", "Town 2", ...]
+    const { district_id, towns } = req.body;
     
     try {
         const client = await pool.connect();
@@ -337,11 +307,6 @@ const addMultipleTowns = async (req, res) => {
     }
 };
 
-// ============================
-// 6. VILLAGE OPERATIONS
-// ============================
-
-// Get villages by mandal
 const getVillagesByMandal = async (req, res) => {
     const { mandalId } = req.params;
     
@@ -357,7 +322,6 @@ const getVillagesByMandal = async (req, res) => {
     }
 };
 
-// Get villages by sector
 const getVillagesBySector = async (req, res) => {
     const { sectorId } = req.params;
     
@@ -373,7 +337,6 @@ const getVillagesBySector = async (req, res) => {
     }
 };
 
-// Add village to mandal
 const addVillageToMandal = async (req, res) => {
     const { mandal_id, name } = req.body;
     
@@ -393,7 +356,6 @@ const addVillageToMandal = async (req, res) => {
     }
 };
 
-// Add village to sector
 const addVillageToSector = async (req, res) => {
     const { sector_id, name } = req.body;
     
@@ -413,7 +375,6 @@ const addVillageToSector = async (req, res) => {
     }
 };
 
-// Add multiple villages to mandal (bulk)
 const addMultipleVillagesToMandal = async (req, res) => {
     const { mandal_id, villages } = req.body; // villages: ["Village 1", "Village 2", ...]
     
@@ -446,7 +407,6 @@ const addMultipleVillagesToMandal = async (req, res) => {
     }
 };
 
-// Add multiple villages to sector (bulk)
 const addMultipleVillagesToSector = async (req, res) => {
     const { sector_id, villages } = req.body; // villages: ["Village 1", "Village 2", ...]
     
@@ -479,11 +439,6 @@ const addMultipleVillagesToSector = async (req, res) => {
     }
 };
 
-// ============================
-// 7. HELPER/LOOKUP FUNCTIONS
-// ============================
-
-// Get state details with all districts
 const getStateDetails = async (req, res) => {
     const { stateId } = req.params;
     
@@ -504,7 +459,6 @@ const getStateDetails = async (req, res) => {
     }
 };
 
-// Get district details with all children
 const getDistrictDetails = async (req, res) => {
     const { districtId } = req.params;
     
@@ -541,7 +495,6 @@ const getDistrictDetails = async (req, res) => {
     }
 };
 
-// Search location by name
 const searchLocation = async (req, res) => {
     const { query } = req.query;
     
@@ -640,7 +593,6 @@ const deleteVillage = async (req, res) => {
         res.status(500).json({ error: 'Failed to delete village' });
     }
 };
-
 
 module.exports = {
     getStates,

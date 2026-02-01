@@ -3,7 +3,6 @@ const dotenv = require('dotenv');
 const cors = require("cors");
 const path = require("path");
 
-// Import table creation functions
 const { createUserTable } = require('./src/model/userModel');
 const { createTables } = require('./src/model/landModel');
 const { createWalletTable }= require('./src/model/walletModel');
@@ -19,10 +18,8 @@ const { createReviewTable }= require('./src/model/reviewModel');
 const { createNotificationTable }= require('./src/model/notificationModel');
 const { createOfficeWorkTable }= require('./src/model/officeWorkModel');
 
-// Import database pool
 const pool = require('./src/db/db');
 
-// Import routes
 const registerRoutes = require('./src/routes/registerRoutes');
 const userRoutes= require('./src/routes/userRoutes');
 const authRoutes = require('./src/routes/authRoutes');
@@ -38,12 +35,10 @@ const notificationRoutes= require('./src/routes/notificationRoutes');
 dotenv.config();
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use("/public", express.static(path.join(__dirname, "./src/public")));
 
-// Routes
 app.use('/api', registerRoutes);
 app.use('/auth', authRoutes);
 app.use('/field-executive', fieldExecutiveRoutes);
@@ -56,12 +51,10 @@ app.use('/marketing', marketingRoutes);
 app.use('/agent', agentRoutes);
 app.use('/notification', notificationRoutes);
 
-// Health check endpoint
 app.get("/", (req, res) => {
   res.send("Welcome to Garuda Server");
 });
 
-// Function to create default roles
 const createDefaultRoles = async () => {
   try {
     // Check if roles table has data
@@ -113,12 +106,10 @@ const createDefaultRoles = async () => {
   }
 };
 
-// Function to initialize all tables and data
 const initializeDatabase = async () => {
   try {
     console.log("Initializing database tables...");
     
-    // Create tables in sequence
     await createUserTable();
     await createTables();
     await createWalletTable();
@@ -144,7 +135,6 @@ const initializeDatabase = async () => {
 
 const PORT = process.env.PORT || 5000;
 
-// Start server
 app.listen(PORT, async () => {
   try {
     await initializeDatabase();
@@ -155,7 +145,6 @@ app.listen(PORT, async () => {
   }
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({

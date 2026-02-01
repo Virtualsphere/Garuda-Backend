@@ -83,7 +83,6 @@ const createJobPosting = async (req, res) => {
     const { state, district, town, mandal, postings } = req.body;
     const unique_id = req.user.unique_id;
 
-    // 1️⃣ job_location
     const jobRes = await client.query(
       `
       INSERT INTO job_location (unique_id, state, district, town, mandal)
@@ -95,7 +94,6 @@ const createJobPosting = async (req, res) => {
 
     const jobLocationId = jobRes.rows[0].id;
 
-    // 2️⃣ posting_details
     for (let i = 0; i < postings.length; i++) {
       const placePhoto = req.files?.find(
         file => file.fieldname === `place_photo_${i}`
@@ -156,7 +154,6 @@ const createTVAdvertising = async (req, res) => {
     const { contacts } = req.body;
     const unique_id = req.user.unique_id;
 
-    // 1️⃣ batch
     const batchRes = await client.query(
       `
       INSERT INTO tv_advertising_batch (unique_id)
@@ -168,7 +165,6 @@ const createTVAdvertising = async (req, res) => {
 
     const batchId = batchRes.rows[0].id;
 
-    // 2️⃣ contacts
     for (let i = 0; i < contacts.length; i++) {
       const photo = req.files?.find(
         file => file.fieldname === `photo_${i}`
@@ -364,7 +360,6 @@ const createOurAds = async (req, res) => {
     const adPhoto = req.files?.ad_photo?.[0]?.filename || null;
     const locationPhoto = req.files?.location_photo?.[0]?.filename || null;
 
-    // Insert into our_ads and get inserted id
     const adsResult = await client.query(
       `
       INSERT INTO our_ads
@@ -443,7 +438,8 @@ const getPosterSticking = async (req, res) => {
         pl.state, pl.district, pl.town, pl.mandal,
         ps.shop_name, ps.phone_number, ps.shop_type,
         ps.shop_photo, ps.sticker_photo,
-        ps.latitude, ps.longitude
+        ps.latitude, ps.longitude,
+        ps.created_at
       FROM poster_location pl
       LEFT JOIN poster_shops ps ON ps.poster_location_id = pl.id
       WHERE pl.unique_id = $1
@@ -462,7 +458,6 @@ const getPosterSticking = async (req, res) => {
           district: row.district,
           town: row.town,
           mandal: row.mandal,
-          created_at: row.created_at,
           shops: [],
         };
       }
@@ -506,7 +501,8 @@ const getJobPosting = async (req, res) => {
         jl.id AS job_location_id,
         jl.state, jl.district, jl.town, jl.mandal,
         pd.latitude, pd.longitude,
-        pd.place_photo, pd.sticker_photo
+        pd.place_photo, pd.sticker_photo,
+        pd.created_at
       FROM job_location jl
       LEFT JOIN posting_detials pd ON pd.job_location_id = jl.id
       WHERE jl.unique_id = $1
@@ -525,7 +521,6 @@ const getJobPosting = async (req, res) => {
           district: row.district,
           town: row.town,
           mandal: row.mandal,
-          created_at: row.created_at,
           postings: [],
         };
       }
@@ -579,7 +574,6 @@ const getTVAdvertising = async (req, res) => {
       if (!data[row.batch_id]) {
         data[row.batch_id] = {
           batch_id: row.batch_id,
-          created_at: row.created_at,
           contacts: [],
         };
       }
@@ -636,7 +630,6 @@ const getBannerAdvertising = async (req, res) => {
       if (!data[row.batch_id]) {
         data[row.batch_id] = {
           batch_id: row.batch_id,
-          created_at: row.created_at,
           contacts: [],
         };
       }

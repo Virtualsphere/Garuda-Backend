@@ -100,7 +100,6 @@ const getLandCodesByLocation = async (req, res) => {
     try {
         const { state_id, district_id, town_id, status } = req.query;
         
-        // FIXED: Removed LEFT JOIN villages since we're not using village_id anymore
         let query = `
             SELECT 
                 lc.*,
@@ -201,7 +200,6 @@ const updateLandCode = async (req, res) => {
         const { id } = req.params;
         const { farmer_name, farmer_phone, village_name, status } = req.body;
         
-        // Check if land code exists and is available
         const landCodeCheck = await client.query(
             'SELECT * FROM land_code WHERE id = $1',
             [id]
@@ -221,7 +219,6 @@ const updateLandCode = async (req, res) => {
             });
         }
         
-        // Update land code
         const updateFields = [];
         const updateValues = [];
         let paramCount = 1;
@@ -370,7 +367,7 @@ const bulkUpdateLandCodes = async (req, res) => {
     try {
         await client.query('BEGIN');
         
-        const { updates } = req.body; // Array of {id, farmer_name, farmer_phone, village_id, status}
+        const { updates } = req.body;
         
         if (!updates || !Array.isArray(updates) || updates.length === 0) {
             await client.query('ROLLBACK');
@@ -384,7 +381,6 @@ const bulkUpdateLandCodes = async (req, res) => {
             try {
                 const { id, farmer_name, farmer_phone, village_id, status } = update;
                 
-                // Check if land code exists
                 const checkResult = await client.query(
                     'SELECT land_code, status FROM land_code WHERE id = $1',
                     [id]
@@ -405,7 +401,6 @@ const bulkUpdateLandCodes = async (req, res) => {
                     continue;
                 }
                 
-                // Build update query
                 const updateFields = [];
                 const updateValues = [];
                 let paramCount = 1;

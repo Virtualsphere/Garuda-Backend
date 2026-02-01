@@ -1,6 +1,5 @@
 const pool = require('../db/db');
 
-// Get all roles
 const getAllRoles = async (req, res) => {
   try {
     const result = await pool.query(
@@ -17,7 +16,6 @@ const getAllRoles = async (req, res) => {
   }
 };
 
-// Get single role
 const getRole = async (req, res) => {
   try {
     const { roleName } = req.params;
@@ -49,10 +47,8 @@ const createRole = async (req, res) => {
       return res.status(400).json({ error: "Role name is required" });
     }
 
-    // Convert name to lowercase
     name = name.toLowerCase().trim();
 
-    // Check if role already exists
     const checkResult = await pool.query(
       `SELECT id FROM roles WHERE name = $1`,
       [name]
@@ -80,13 +76,11 @@ const createRole = async (req, res) => {
   }
 };
 
-// Update role permissions
 const updateRolePermissions = async (req, res) => {
   try {
     const { roleName } = req.params;
     const { permissions } = req.body;
     
-    // Check if role exists
     const checkResult = await pool.query(
       `SELECT id FROM roles WHERE name = $1`,
       [roleName]
@@ -115,12 +109,10 @@ const updateRolePermissions = async (req, res) => {
   }
 };
 
-// Delete role
 const deleteRole = async (req, res) => {
   try {
     const { roleName } = req.params;
     
-    // Check if any users have this role
     const usersResult = await pool.query(
       `SELECT COUNT(*) FROM users WHERE role = $1`,
       [roleName]
@@ -151,10 +143,9 @@ const deleteRole = async (req, res) => {
   }
 };
 
-// Get user's permissions based on JWT token role
 const getUserPermissions = async (req, res) => {
   try {
-    const userRole = req.user.role; // From JWT token
+    const userRole = req.user.role;
     
     const result = await pool.query(
       `SELECT permissions FROM roles WHERE name = $1`,
@@ -162,7 +153,6 @@ const getUserPermissions = async (req, res) => {
     );
     
     if (result.rows.length === 0) {
-      // Return default permissions if role not found
       return res.status(200).json({
         success: true,
         permissions: {
@@ -182,7 +172,6 @@ const getUserPermissions = async (req, res) => {
   }
 };
 
-// Get current user's role (for frontend)
 const getMyRole = async (req, res) => {
   try {
     res.status(200).json({

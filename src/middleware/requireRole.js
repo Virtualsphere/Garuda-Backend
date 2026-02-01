@@ -1,4 +1,4 @@
-// ✅ Middleware for Role-based Access Control
+
 const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     const userRole = req.user?.role;

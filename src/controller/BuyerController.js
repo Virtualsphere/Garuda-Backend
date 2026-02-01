@@ -104,7 +104,6 @@ const getBuyers = async (req, res) => {
   try {
     const { state, district, town, sectors } = req.query;
 
-    // If no filters were provided → return all buyers
     if (!state && !district && !town && !sectors) {
       const result = await pool.query(`
         SELECT * FROM buyers
@@ -118,7 +117,6 @@ const getBuyers = async (req, res) => {
       });
     }
 
-    // Build WHERE conditions dynamically
     let conditions = [];
     let values = [];
 
@@ -171,7 +169,6 @@ const addWishlist = async (req, res) => {
       });
     }
 
-    // Insert each land_id into wishlist
     const insertQuery = `
       INSERT INTO whish_list (unique_id, land_id)
       VALUES ($1, $2)
@@ -222,7 +219,6 @@ const getWishList = async (req, res) => {
     for (const item of wishListResult.rows) {
       const { unique_id, land_id } = item;
 
-      // 2.1 Fetch buyer details
       const buyerRes = await pool.query(
         `SELECT * FROM buyers WHERE unique_id = $1`,
         [unique_id]

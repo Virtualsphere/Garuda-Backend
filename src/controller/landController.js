@@ -26,7 +26,6 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
     }
   };
 
-  // land_location
   addField("land_location", "state", body.state);
   addField("land_location", "district", body.district);
   addField("land_location", "mandal", body.mandal);
@@ -49,7 +48,6 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
     addField("land_location", "recheck", body.recheck);
   }
 
-  // farmer_details
   addField("farmer_details", "name", body.name);
   addField("farmer_details", "phone", body.phone);
   addField("farmer_details", "whatsapp_number", body.whatsapp_number);
@@ -59,7 +57,6 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
   addField("farmer_details", "land_ownership", body.land_ownership);
   addField("farmer_details", "mortgage", body.mortgage);
 
-  // land_details
   addField("land_details", "land_area", body.land_area);
   addField("land_details", "guntas", body.guntas);
   addField("land_details", "price_per_acre", body.price_per_acre);
@@ -80,17 +77,14 @@ function buildStructuredUpdate({body = {}, mode, uniqueId}) {
   addField("land_details", "residental", body.residental);
   addField("land_details", "fencing", body.fencing);
 
-  // gps_tracking
   addField("gps_tracking", "road_path", body.road_path);
   addField("gps_tracking", "latitude", body.latitude);
   addField("gps_tracking", "longitude", body.longitude);
 
-  // dispute_details
   addField("dispute_details", "dispute_type", body.dispute_type);
   addField("dispute_details", "siblings_involve_in_dispute", body.siblings_involve_in_dispute);
   addField("dispute_details", "path_to_land", body.path_to_land);
 
-    // office_work
   addField("office_work", "suggested_farmer_name", body.suggested_farmer_name);
   addField("office_work", "suggested_farmer_phone", body.suggested_farmer_phone);
   addField("office_work", "suggested_village", body.suggested_village);
@@ -119,7 +113,6 @@ const createFullLandEntry = async (req, res) => {
     await client.query("BEGIN");
 
     const {
-      // land_location
       state,
       district,
       mandal,
@@ -127,7 +120,6 @@ const createFullLandEntry = async (req, res) => {
       location,
       status,
 
-      // farmer_details
       name,
       phone,
       whatsapp_number,
@@ -137,7 +129,6 @@ const createFullLandEntry = async (req, res) => {
       land_ownership,
       mortgage,
 
-      // land_details
       land_area,
       guntas,
       price_per_acre,
@@ -150,12 +141,10 @@ const createFullLandEntry = async (req, res) => {
       residental,
       fencing,
 
-      // gps_tracking
       road_path,
       latitude,
       longitude,
 
-      // dispute_details
       dispute_type,
       siblings_involve_in_dispute,
       path_to_land,
@@ -179,7 +168,6 @@ const createFullLandEntry = async (req, res) => {
 
     const unique_id = req.user.unique_id;
 
-    // File Handling
     const passbookPhoto = req.files?.passbook_photo?.[0]?.filename || null;
     const landBorder = req.files?.land_border?.[0]?.filename || null;
 
@@ -615,7 +603,6 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
       updates.document_media.land_video = req.files.land_video.map(f => f.filename);
     }
     
-    // Table mapping
     const tables = {
       land_location: { table: "land_location", key: "land_id" },
       farmer_details: { table: "farmer_details", key: "land_id" },
@@ -626,9 +613,8 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
       office_work: { table: "office_work", key: "land_id" }
     };
 
-    // Update each table
     for (const key in updates) {
-      if (!tables[key]) continue;   // ✅ first check mapping exists
+      if (!tables[key]) continue;
 
       const { table, key: idColumn } = tables[key];
 
@@ -658,11 +644,9 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
       );
     }
 
-    // NEW: store verification admin & date + create wallet entry IF NOT EXISTS
     if (updates.land_location.verification === "verified" || updates.land_location.verification === "rejected") {
         const uniqueId = req.user.unique_id;
 
-        // Update land_location with verifier info
         await client.query(
             `UPDATE land_location
             SET verification_unique_id = $1,
@@ -671,7 +655,6 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
             [uniqueId, land_id]
         );
 
-        // Check if a wallet record already exists
         const existingWallet = await client.query(
             `SELECT id FROM physical_verification_wallet 
             WHERE land_id = $1 AND varification = 'verified'`,
@@ -679,7 +662,6 @@ const updateVerficationLandWithPhysicalVerificationDetails = async (req, res) =>
         );
 
         if (existingWallet.rowCount === 0 && req.user.role != "admin") {
-            // Insert only if no previous verified entry
             await client.query(
             `INSERT INTO physical_verification_wallet
             (land_id, unique_id, varification, date, physical_verification_amount, status)
@@ -873,7 +855,6 @@ const updateLandDetails = async (req, res) => {
       return res.status(404).json({ error: `${land_id} not found` });
     }
 
-    // Attach uploaded files
     if (req.files?.passbook_photo) {
       updates.land_details = updates.land_details || {};
       updates.land_details.passbook_photo = req.files.passbook_photo[0].filename;
@@ -894,7 +875,6 @@ const updateLandDetails = async (req, res) => {
       updates.document_media.land_video = req.files.land_video.map(f => f.filename);
     }
 
-    // Table map
     const tables = {
       land_location: { table: "land_location", key: "land_id" },
       farmer_details: { table: "farmer_details", key: "land_id" },
@@ -904,7 +884,6 @@ const updateLandDetails = async (req, res) => {
       document_media: { table: "document_media", key: "land_id" },
     };
 
-    // Update each table
     for (const key in updates) {
       const tableConfig = tables[key];
       if (!tableConfig) continue;
@@ -1067,7 +1046,6 @@ const getLandData = async (req, res) => {
   try {
     const baseURL = `${req.protocol}://${req.get("host")}/public/`;
 
-    // Extract filters
     const {
       district,
       state,
@@ -1077,18 +1055,15 @@ const getLandData = async (req, res) => {
       land_id,
     } = req.query;
 
-    // Dynamic conditions
     let conditions = [`l.status = $1`];
     let values = ["true"];
     let index = 2;
 
-    // 🆕 Filter by land_id (exact match)
     if (land_id) {
       conditions.push(`l.land_id = $${index++}`);
       values.push(land_id);
     }
 
-    // Text filters (LIKE)
     if (district) {
       conditions.push(`l.district ILIKE $${index++}`);
       values.push(`%${district}%`);
@@ -1098,7 +1073,6 @@ const getLandData = async (req, res) => {
       values.push(`%${state}%`);
     }
 
-    // Numeric filters (<=)
     if (price_per_acres) {
       conditions.push(`ld.price_per_acre <= $${index++}`);
       values.push(price_per_acres);
@@ -1112,7 +1086,6 @@ const getLandData = async (req, res) => {
       values.push(land_area);
     }
 
-    // Build final SQL
     const query = `
       SELECT 
         l.*,
@@ -1137,7 +1110,6 @@ const getLandData = async (req, res) => {
       return res.status(404).json({ message: "No land records found" });
     }
 
-    // Build response format
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
 
@@ -1251,7 +1223,6 @@ const getAllFullLandFullDetails = async (req, res) => {
       values.push(land_area);
     }
 
-    // CORRECTED SQL QUERY
     const query = `
       SELECT 
         l.*,
@@ -1332,8 +1303,8 @@ const getAllFullLandFullDetails = async (req, res) => {
       ORDER BY l.created_at DESC;
     `;
 
-    console.log("SQL Query:", query); // Debug log
-    console.log("Query values:", values); // Debug log
+    console.log("SQL Query:", query);
+    console.log("Query values:", values);
 
     const result = await pool.query(query, values);
 
@@ -1341,7 +1312,7 @@ const getAllFullLandFullDetails = async (req, res) => {
       return res.status(404).json({ message: "No land records found" });
     }
 
-    console.log("First row sample:", JSON.stringify(result.rows[0], null, 2)); // Debug log
+    console.log("First row sample:", JSON.stringify(result.rows[0], null, 2));
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
@@ -1483,7 +1454,6 @@ const getAllVerfiedLandFullDetails = async (req, res) => {
 
     const values = ["verified", "true"];
 
-    // Exclude purchased lands only if user is logged in
     if (userUniqueId) {
       query += `
         AND NOT EXISTS (
@@ -1714,7 +1684,6 @@ const deleteLandDetails = async (req, res) => {
     await client.query(`DELETE FROM farmer_details WHERE land_id = $1`, [landId]);
     await client.query(`DELETE FROM office_work WHERE land_id= $1`, [landId]);
 
-    // Finally delete main land record
     await client.query(`DELETE FROM land_location WHERE land_id = $1`, [landId]);
 
     await client.query("COMMIT");
@@ -1779,13 +1748,19 @@ const getAllVerfiedLandFullDetailsForReport = async (req, res) => {
         ld.*,
         gps.*,
         d.*,
-        dm.*
+        dm.*,
+
+      u.unique_id AS user_unique_id,
+      u.name AS user_name,
+      u.role AS user_role
+
       FROM land_location l
       LEFT JOIN farmer_details f ON l.land_id = f.land_id
       LEFT JOIN land_details ld ON l.land_id = ld.land_id
       LEFT JOIN gps_tracking gps ON l.land_id = gps.land_id
       LEFT JOIN dispute_details d ON l.land_id = d.land_id
       LEFT JOIN document_media dm ON l.land_id = dm.land_id
+      LEFT JOIN users u ON l.unique_id = u.unique_id
       WHERE l.verification = $1
         AND l.status = $2
     `;
@@ -1802,6 +1777,11 @@ const getAllVerfiedLandFullDetailsForReport = async (req, res) => {
 
     const response = result.rows.map((row) => ({
       land_id: row.land_id,
+
+      user_detail: {
+        user_name: row.user_name,
+        user_role: row.user_role,
+      },
 
       land_location: {
         unique_id: row.unique_id,

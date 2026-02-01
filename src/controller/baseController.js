@@ -25,10 +25,11 @@ const getLandWallet = async (req, res) => {
   try {
     const unique_id = req.user.unique_id;
 
-    const result = await pool.query(
-      `SELECT lw.*, fd.name AS farmer_name
+     const result = await pool.query(
+      `SELECT lw.id, lw.land_id, lw.unique_id, lw.date, lw.work_amount, lw.status, fd.name AS farmer_name, l.verification
        FROM land_wallet lw
        LEFT JOIN farmer_details fd ON fd.land_id = lw.land_id
+       LEFT JOIN land_location l ON l.land_id = lw.land_id
        WHERE lw.unique_id = $1
        ORDER BY lw.date DESC`,
       [unique_id]
@@ -49,10 +50,11 @@ const getLandMonthWallet = async (req, res) => {
   try {
     const unique_id = req.user.unique_id;
 
-    const result = await pool.query(
-      `SELECT lmw.*, fd.name AS farmer_name
+     const result = await pool.query(
+      `SELECT lmw.id, lmw.land_id, lmw.unique_id, lmw.date, lmw.month_end_amount, lmw.status, fd.name AS farmer_name, l.verification
        FROM land_month_wallet lmw
        LEFT JOIN farmer_details fd ON fd.land_id = lmw.land_id
+       LEFT JOIN land_location l ON l.land_id = lmw.land_id
        WHERE lmw.unique_id = $1
        ORDER BY lmw.date DESC`,
       [unique_id]
@@ -74,9 +76,10 @@ const getPhysicalWallet= async (req, res) =>{
       const unique_id= req.user.unique_id;
       const result= await pool.query(
         `
-          SELECT pw.*, fd.name AS farmer_name
+          SELECT pw.id, pw.land_id, pw.unique_id, pw.date, pw.physical_verification_amount, pw.status, fd.name AS farmer_name, l.verification
           FROM physical_verification_wallet pw
           LEFT JOIN farmer_details fd ON fd.land_id = pw.land_id
+          LEFT JOIN land_location l ON l.land_id = pw.land_id
           WHERE pw.unique_id = $1
           ORDER BY pw.date DESC
         `,
@@ -595,6 +598,28 @@ const totalDueAndPendingMarketingAmount = async (req, res) => {
   }
 };
 
+const totalDueAndPendingAgentAmount = async (req, res) => {
+  try {
+    const unique_id = req.user.unique_id;
+
+    const result = await pool.query(`
+      SELECT
+        SUM(CASE WHEN status = 'pending' THEN amount::NUMERIC ELSE 0::NUMERIC END) AS due_amount,
+        SUM(CASE WHEN status = 'approved' THEN amount::NUMERIC ELSE 0::NUMERIC END) AS paid_amount
+      FROM (
+        SELECT work_amount AS amount, status FROM land_wallet WHERE unique_id = $1
+        UNION ALL
+        SELECT month_end_amount AS amount, status FROM land_month_wallet WHERE unique_id = $1
+      ) t
+    `, [unique_id]);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 const totalLandMonthAmount = async (req, res) => {
   try {
     const unique_id = req.user.unique_id;
@@ -637,5 +662,6 @@ module.exports= {
     totalLandMonthAmount,
     updateAdsWallet,
     updateJobPostWallet,
-    updatePosterWallet
+    updatePosterWallet,
+    totalDueAndPendingAgentAmount
 }

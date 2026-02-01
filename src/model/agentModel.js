@@ -1,8 +1,7 @@
-// In your agent table creation file
+
 const pool = require("../db/db");
 
 const createAgent = async () => {
-  // Create main agents table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS agents (
       id SERIAL PRIMARY KEY,
@@ -17,7 +16,6 @@ const createAgent = async () => {
     );
   `);
 
-  // Create agent preferences
   await pool.query(`
     CREATE TABLE IF NOT EXISTS agent_preferences (
       id SERIAL PRIMARY KEY,
@@ -29,7 +27,6 @@ const createAgent = async () => {
     );
   `);
 
-  // Create land attachments
   await pool.query(`
     CREATE TABLE IF NOT EXISTS agent_land_attachments (
       id SERIAL PRIMARY KEY,
@@ -40,21 +37,14 @@ const createAgent = async () => {
     );
   `);
 
-  // -------------------------------------------
-  // Trigger Logic (Safe & Idempotent)
-  // -------------------------------------------
-
-  // Drop trigger if it already exists
   await pool.query(`
     DROP TRIGGER IF EXISTS update_agents_updated_at ON agents;
   `);
 
-  // Drop function if exists (only removes function, not tables/data)
   await pool.query(`
     DROP FUNCTION IF EXISTS update_updated_at_column();
   `);
 
-  // Recreate function
   await pool.query(`
     CREATE OR REPLACE FUNCTION update_updated_at_column()
     RETURNS TRIGGER AS $$
@@ -65,7 +55,6 @@ const createAgent = async () => {
     $$ LANGUAGE 'plpgsql';
   `);
 
-  // Recreate trigger
   await pool.query(`
     CREATE TRIGGER update_agents_updated_at 
     BEFORE UPDATE ON agents 

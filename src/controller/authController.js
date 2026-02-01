@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../db/db');
 
-// Helper to find user by email or phone
 const findUserByEmailOrPhone = async (identifier) => {
   const result = await pool.query(
     `SELECT * FROM users WHERE email = $1 OR phone = $1 LIMIT 1`,
@@ -11,7 +10,6 @@ const findUserByEmailOrPhone = async (identifier) => {
   return result.rows[0];
 };
 
-// Login Controller
 exports.loginUser = async (req, res) => {
   try {
     const { identifier, password } = req.body;
