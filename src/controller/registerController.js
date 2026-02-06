@@ -66,21 +66,24 @@ const upsert = async (table, uniqueId, data) => {
   );
 };
 
-const generateUniqueId = async (role) => {
-  const result = await pool.query(
-    `SELECT unique_id FROM users WHERE unique_id LIKE $1 ORDER BY id DESC LIMIT 1`,
-    [`${role}%`]
+const generateUniqueId = async (client, role) => {
+  const result = await client.query(
+    `
+    INSERT INTO role_counters (role, last_number)
+    VALUES ($1, 0)
+    ON CONFLICT (role)
+    DO UPDATE SET last_number = role_counters.last_number + 1
+    RETURNING last_number;
+    `,
+    [role]
   );
 
-  if (result.rows.length === 0) return `${role}0`;
-
-  const lastId = result.rows[0].unique_id;
-  const numberPart = parseInt(lastId.replace(role, '')) || 0;
-  return `${role}${numberPart + 1}`;
+  return `${role}${result.rows[0].last_number}`;
 };
 
 const registerUser = async (req, res) => {
   try {
+    await client.query('BEGIN');
     const { name, email, phone, password, role, bloodGroup } = req.body;
 
     if (!name || !email || !phone || !password || !role) {
@@ -110,6 +113,8 @@ const registerUser = async (req, res) => {
        RETURNING *;`,
       [uniqueId, name, email, phone, hashedPassword, role, image, bloodGroup, photo]
     );
+
+    await client.query('COMMIT');
 
     const newUser = result.rows[0];
     res.status(201).json({

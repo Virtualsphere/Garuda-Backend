@@ -92,6 +92,13 @@ const createUserTable = async () => {
       assigned_employee VARCHAR(255)
     );
   `);
+
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS role_counters (
+        role TEXT PRIMARY KEY,
+        last_number INTEGER NOT NULL
+      );
+    `);
 };
 
 module.exports= { createUserTable }
