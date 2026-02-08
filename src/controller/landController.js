@@ -920,11 +920,6 @@ const updateLandDetails = async (req, res) => {
       );
     }
 
-    await client.query(
-      "UPDATE land_location SET created_at = CURRENT_DATE WHERE land_id = $1",
-      [land_id]
-    );
-
     await client.query("COMMIT");
 
     res.status(200).json({
